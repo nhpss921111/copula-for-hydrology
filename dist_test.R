@@ -162,3 +162,4 @@ for(i in 1:dim(variable)[2]){
   aic.choice <- rank(as.numeric(aic.table[(1:dist),i])) 
   aic.table[length(candidate)+1,i] <- candidate[which.min(aic.choice)] #最小的AIC-value對應的機率分布
 }
+
