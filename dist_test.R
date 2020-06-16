@@ -3,10 +3,11 @@
 # 以"家源橋"為例
 # 候選分布：norm,lnorm,gumbel,weibull,gamma
 # 用最大概似法
-# K-S檢定
+# K-S適合度檢定
+# 等機率卡方適合度檢定
 # AIC準則選最佳分布
 # gamma和lgamma的初始值要調整!!!
-# 結果請參考：par.table & dist.table & aic.table
+# 結果請參考：par.table & ks.table & chi.table & aic.table
 # By連育成
 
 rm(list = ls())
@@ -59,10 +60,14 @@ variable <- cbind(Q,S)
 par.table <- matrix(nrow=length(candidate),ncol=2*2)
 rownames(par.table) <- c(candidate)
 colnames(par.table) <- c("par1","par2","par1","par2")
-# pvalue.table 放置p-value
-pvalue.table <- matrix(nrow=length(candidate)+1,ncol=dim(variable)[2]) # +1 是為了要放最佳分布的欄位
-rownames(pvalue.table) <- c(candidate,"good dist")
-colnames(pvalue.table) <- c(colnames(variable))
+# ks.table 放置p-value
+ks.table <- matrix(nrow=length(candidate)+1,ncol=dim(variable)[2]) # +1 是為了要放最佳分布的欄位
+rownames(ks.table) <- c(candidate,"good dist")
+colnames(ks.table) <- c(colnames(variable))
+# chi.table 放置p-value
+chi.table <- matrix(nrow=length(candidate)+1,ncol=dim(variable)[2]) # +1 是為了要放最佳分布的欄位
+rownames(chi.table) <- c(candidate,"good dist")
+colnames(chi.table) <- c(colnames(variable))
 # aic.table  放置AIC value
 aic.table <- matrix(nrow=length(candidate)+1,ncol=dim(variable)[2]) # +1 是為了要放最小AIC的欄位
 rownames(aic.table) <- c(candidate,"good dist")
@@ -106,218 +111,44 @@ for(i in 1:dim(variable)[2]){
       par1 <- md$estimate[1] #fitting參數1
       par2 <- md$estimate[2] #參數2
       print(c(par1, par2))}
-    if(candidate[dist] == "lgamma"){
-      next
-      if(i==1){
-        md <- fitdist(var, dist = dist.char[1],start=list(shapelog=1,ratelog=1),
-                      lower=c(0,0),upper=c(Inf,Inf)) # control=list(trace=1, REPORT=1)
-        par1 <- md$estimate[1] #fitting參數1
-        par2 <- md$estimate[2] #參數2
-        print(c(par1, par2))}
-      if(i==2){
-        next # 若無法估計就跳過
-        prefit(var,dist = dist.char[1],"mle",list(shapelog=0.1,ratelog=0.5),lower=0,upper=Inf)
-        md <- fitdist(var, dist = dist.char[1],start=list(shapelog=0.1,ratelog=0.5),
-                      lower=c(0,0),upper=c(Inf,Inf)) # control=list(trace=1, REPORT=1)
-        par1 <- md$estimate[1] #fitting參數1
-        par2 <- md$estimate[2] #參數2
-        print(c(par1, par2))}
-    }
     if(i==1){
       par.table[dist,1] <- as.numeric(par1) 
       par.table[dist,2] <- as.numeric(par2)}
     if(i==2){
       par.table[dist,3] <- as.numeric(par1) 
       par.table[dist,4] <- as.numeric(par2)}
-    
+    #
     # ------------------------------- K-S test ----------------------
+    #
     print("KS test")
     if(candidate[dist] == "norm"){xi.cdf <- get(dist.char[3])(var, par1,par2)}
     if(candidate[dist] == "lnorm"){xi.cdf <- get(dist.char[3])(var, meanlog=par1, sdlog=par2)}
     if(candidate[dist] == "gumbel"){xi.cdf <- get(dist.char[3])(var, par1, par2)}
     if(candidate[dist] == "weibull"){xi.cdf <- get(dist.char[3])(var, par1, par2)}
     if(candidate[dist] == "gamma"){xi.cdf <- get(dist.char[3])(var, par1, par2)}
-    if(candidate[dist] == "lgamma"){xi.cdf <- get(dist.char[3])(var, par1, par2)}
-    
-    result <- ks.test(var, dist.char[3], par1,par2)
+    #
+    result <- ks.test(var, dist.char[3], par1, par2)
     print(paste0(candidate[dist], "的KS檢定P-value: ", result$p.value))
-    
+    #
     # 將P-value整理成表格
-    pvalue.table[dist,i] <- result$p.value
+    ks.table[dist,i] <- result$p.value
     #
-    
-    # -------------------------- Chi-square equal probability method ---------------------
-    print("Equal Probability method")
-    ## Q的組數:k
-    k <- round(1+3.3*log10(length(var)))
-    print(paste0("理論組數",k))
-    
-    adjust <- 0
-    k.after <- k
-    k.ini <- k
-    Oi <- c(0)
-    
-    for (i in c(1:k)){
-      #if(any(Oi<5)){
-      
-      if(k.ini==k.after+adjust){
-        
-        ## Q分成K組，每組的累積機率 Fx (x:Q,S)
-        Fx <- c()
-        i <- 1
-        while(i <= k){
-          b <- 1/k*i
-          Fx <- append(Fx,b)
-          i = i + 1
-        }
-        #print(paste("累積機率: ", Fx))
-        
-        
-        ## 分成K組，每組的機率密度 fx (x:Q,S)
-        
-        fx <- rep(1/k, time=k)
-        
-        ## 累積機率對應到的水文量 xi( Qi 和 Si )
-        ### 5種機率分布套配 (用累積機率回推 xi)
-        
-        if (candidate[dist]=="norm"){
-          xi <- get(dist.char[4])(Fx, par1, par2)
-          xi[k] <- max(var)
-          
-        }else if (candidate[dist]=="lnorm"){
-          xi <- get(dist.char[4])(Fx, meanlog = par1, sdlog = par2)
-          xi[k] <- max(var)
-          
-        }else if (candidate[dist]=="gumbel"){
-          xi <- get(dist.char[4])(Fx, par1, par2)
-          xi[k] <- max(var)
-          
-        }else if (candidate[dist]=="weibull"){
-          xi <- get(dist.char[4])(Fx,  par1, par2)
-          xi[k] <- max(var)
-          
-        }else if (candidate[dist]=="gamma"){
-          xi <- get(dist.char[4])(Fx, par1,  par2)
-          xi[k] <- max(var)
-          
-        }else{break}
-        
-        ## 每個等機率區間的個數 Oi
-        O <- c()
-        i <- 1
-        for(i in c(1:k)){
-          a <- xi[i]>var
-          table(a)["TRUE"]
-          n <- length(a[a == TRUE])
-          O <- append(O,n)
-        }
-        #print(O)
-        
-        Oi <- diff(O) #累積次數換成區間次數
-        if (length(Oi)!= k){
-          Oi <- append(Oi, O[1], after=0) # 把第一個值補回去
-        }else{break}
-        #print(cbind(xi,Oi))
-        
-        # 檢查每組至少要5個 Oi[]>=5
-        
-        adjust <- adjust +1
-        if(any(Oi<5)){
-          k.after <- k.ini - adjust #實際組數
-        }else{break}
-        
-        k <- k.after
-      
-      }else{break}
-      
+    # ------------------------- chi square test ------------------------
+    #
+    print("equal prob. chi square test")
+    k <- ceiling(1+3.3*log10(length(var))) # K：組數，無條件進位
+    fv <- rep(1/k, time=k) # 分成K組，每組的機率密度 fx(x:Q,S)
+    Fv <- cumsum(fv)
+    oi <- c()
+    for(j in c(1:k)){
+      o <- get(dist.char[4])((Fv[j]),par1,par2)
+      oi <- append(oi,o)
     }
-    
-    print(paste0("實際組數", k))
-    # 合併Qi與Oi
-    #print(cbind(xi,Oi))
-    
-    # 卡方檢定
-    # function explain:
-    #   chisq.test(x,p) x:每組裡面的個數, p:每個區間的機率密度
-    if( k > 2 ){
-      chisq.result <- chisq.test(Oi, p = fx, rescale.p = TRUE, simulate.p.value = TRUE)
-      print(paste0(candidate[dist], "的等機率卡方檢定P-value: ", chisq.result$p.value))
-    }else{
-      print("skip equal probability method")
-    }
-    
-    
-    # ----------------------------- chi square test ------------------------
-    #
-    print("Equal Width method")
-    #
-    # 分組
-    #
-    k <- round(1+3.3*log10(length(var)))
-    print(paste0("理論分組數:", k))
-    adjust <- 0
-    k.after <- k
-    k.ini <- k
-    Oi <- c(0)
-    
-    for(i in c(1:k)){
-      
-      #if(any(Oi<5)){
-      
-      if(k.ini==k.after+adjust){
-        
-        #等間距的 xi
-        interval <- (ceiling(max(var))-floor(min(var)))/k
-        
-        xi <- seq(floor(min(var+interval)), ceiling(max(var+1)), by = interval ) #floor(比給定值小的整數) # "+1"為了組數可以維持k
-        
-        ## 每個等間距區間的個數 Oi
-        O <- c()
-        i <- 1
-        for(i in c(1:k)){
-          a <- xi[i]>var
-          table(a)["TRUE"]
-          n <- length(a[a == TRUE])
-          O <- append(O,n)
-        }
-        Oi <- diff(O) #累積次數換成區間次數
-        if (length(Oi)!= k){
-          Oi <- append(Oi, O[1], after=0) # 把第一個值補回去
-        }else{break}
-        # 檢查每組至少要5個 Oi[]>=5
-        adjust <- adjust +1
-        if(any(Oi<5)){
-           k.after <- k.ini - adjust #實際組數
-        }else{break}
-        k <- k.after
-      }else{break}
-    }
-    print(paste0("實際分組數:", k))
-    #print(cbind(xi,Oi))
-    
-    #每個間距的累積機率
-    library(zoo)
-    #brks.cdf <- get(dist.char[3])(xi, par1, par2)
-    if(candidate[dist] == "norm"){xi.cdf <- get(dist.char[3])(xi, par1, par2)}
-    if(candidate[dist] == "lnorm"){xi.cdf <- get(dist.char[3])(xi, meanlog = par1, sdlog = par2)}
-    if(candidate[dist] == "gumbel"){xi.cdf <- get(dist.char[3])(xi, par1, par2)}
-    if(candidate[dist] == "weibull"){xi.cdf <- get(dist.char[3])(xi, par1, par2)}
-    if(candidate[dist] == "gamma"){xi.cdf <- get(dist.char[3])(xi, par1, par2)}
-    if(candidate[dist] == "lgamma"){xi.cdf <- get(dist.char[3])(xi, par1, par2)}
-    
-    null.probs <- rollapply(xi.cdf, 2, function(x) x[2]-x[1])
-    
-    null.probs <- append(null.probs, xi.cdf[1], after = 0)
-    
-    if( k > 2 ){
-      result <- chisq.test(Oi, p = null.probs, rescale.p = TRUE, simulate.p.value = TRUE)
-      print(paste0(candidate[dist], "的等間距卡方檢定P-value: ", result$p.value))
-    }else{
-      print("skip equal width method")
-      next
-    }
-    
-    #
+    count <- cut(var,oi)
+    Oi <- table(count)
+    result <- chisq.test(as.numeric(Oi), p = fv[1:(k-1)], rescale.p = TRUE, simulate.p.value = TRUE)
+    print(paste0(candidate[dist], "的卡方檢定P-value: ", result$p.value))
+    chi.table[dist,i] <- result$p.value
     # --------------------------------- AIC -----------------------------
     print("AIC")
     if(candidate[dist] != "gumbel"){
@@ -329,10 +160,12 @@ for(i in 1:dim(variable)[2]){
       aic.table[dist,i] <- aic$AIC # 將AIC-value整理成表格
       print(paste0(candidate[dist], "AIC值: ", aic$AIC))}
   }
-  if(i==2 | candidate[dist] == "lgamma"){pvalue.table[6,2] <- -Inf; aic.table[6,2] <- Inf}
   # 每個延時P-value排序，變成數值再排序
-  pvalue.choice <- rank(as.numeric(pvalue.table[(1:dist),i])) 
-  pvalue.table[length(candidate)+1,i] <- candidate[which.max(pvalue.choice)] #最大的P-value對應的機率分布  
+  ks.choice <- rank(as.numeric(ks.table[(1:dist),i])) 
+  ks.table[length(candidate)+1,i] <- candidate[which.max(ks.choice)] #最大的P-value對應的機率分布
+  # 每個延時P-value排序，變成數值再排序
+  chi.choice <- rank(as.numeric(chi.table[(1:dist),i])) 
+  chi.table[length(candidate)+1,i] <- candidate[which.max(chi.choice)] #最大的P-value對應的機率分布  
   # 每個延時AIC-value排序，變成數值再排序
   aic.choice <- rank(as.numeric(aic.table[(1:dist),i])) 
   aic.table[length(candidate)+1,i] <- candidate[which.min(aic.choice)] #最小的AIC-value對應的機率分布
