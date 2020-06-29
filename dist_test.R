@@ -1,6 +1,7 @@
-# 撰寫日期：2020/06/13
+# 開始撰寫日期：2020/06/13
+# 完成撰寫日期：2020/06/29
 # 統計檢定
-# 以"家源橋"為例
+# 以"蘭陽溪-家源橋"為例
 # 候選分布：norm,lnorm,gumbel,weibull,gamma
 # 用最大概似法
 # K-S適合度檢定
@@ -8,27 +9,29 @@
 # AIC準則選最佳分布
 # gamma和lgamma的初始值要調整!!!
 # 結果請參考：par.table & ks.table & chi.table & aic.table
-# By連育成
+# By連育成 
 
 rm(list = ls())
-library(xlsx) #讀取excel
-library(stats) #機率分布
-library(actuar) #機率分布
-library(dplyr) #資料整理
+library(xlsx) # 讀取excel
+library(stats) # 機率分布
+library(actuar) # 機率分布
+library(dplyr) # 資料整理
 library(FAdist) # 水文上常用機率分布
 library(vcd) # 估計gumbel參數
 library(fitdistrplus) # 估計參數
 library(EnvStats) # Environmental Statistics, Including US EPA Guidance
 library(reliaR) # AIC of gumbel
-library(lestat) #inverse CDF
-library(goftest) #適合度檢定
-library(goft) #適合度檢定
+library(lestat) # inverse CDF
+library(goftest) # 適合度檢定
+library(goft) # 適合度檢定
 library(gumbel)
+library(ggplot2) #繪圖用
 #
 # Read data from excel flie
 setwd("E:/R_reading/CHIA-YUANG")
-data <- read.xlsx(file.path(getwd(),"final_data.xlsx"),sheetIndex="Sheet1",
-                  startRow = 1,endRow = 1324,
+year <- c("1974-1986") # 請輸入年分：
+data <- read.xlsx(file.path(getwd(),"1974-1986.xlsx"),sheetIndex="Sheet1", # 請輸入年分：
+                  startRow = 1,endRow = 2000,
                   header = T,colIndex =2:3,encoding = "UTF-8")
 attach(data)
 #
@@ -89,12 +92,14 @@ for(i in 1:dim(variable)[2]){
       md <- fitdist(var, dist = dist.char[1])
       par1 <- md$estimate[1] #fitting參數1
       par2 <- md$estimate[2] #參數2
-      print(c(par1, par2))}
+      print(c(par1, par2))
+      cdfcomp(md)}
     if(candidate[dist] == "lnorm"){
       md <- fitdist(var, dist = dist.char[1], start = list(meanlog=1, sdlog=1))
       par1 <- md$estimate[1] #fitting參數1
       par2 <- md$estimate[2] #參數2
-      print(c(par1, par2))}
+      print(c(par1, par2))
+      cdfcomp(md)}
     if(candidate[dist] == "gumbel"){
       md <- eevd(var,method = "mle") 
       par1 <- md$parameters[1] #fitting參數1
@@ -104,13 +109,15 @@ for(i in 1:dim(variable)[2]){
       md <- fitdist(var, dist = dist.char[1])
       par1 <- md$estimate[1] #fitting參數1
       par2 <- md$estimate[2] #參數2
-      print(c(par1, par2))}
+      print(c(par1, par2))
+      cdfcomp(md)}
     if(candidate[dist] == "gamma"){
       md <- fitdist(var, dist = dist.char[1],lower = 0, upper=Inf) 
       # start=list(shape=1,scale=1) # control=list(trace=1, REPORT=1)
       par1 <- md$estimate[1] #fitting參數1
       par2 <- md$estimate[2] #參數2
-      print(c(par1, par2))}
+      print(c(par1, par2))
+      cdfcomp(md)}
     if(i==1){
       par.table[dist,1] <- as.numeric(par1) 
       par.table[dist,2] <- as.numeric(par2)}
@@ -159,6 +166,7 @@ for(i in 1:dim(variable)[2]){
       aic <- abic.gumbel(var,par1,par2)
       aic.table[dist,i] <- aic$AIC # 將AIC-value整理成表格
       print(paste0(candidate[dist], "AIC值: ", aic$AIC))}
+    
   }
   # 每個延時P-value排序，變成數值再排序
   ks.choice <- rank(as.numeric(ks.table[(1:dist),i])) 
@@ -171,3 +179,12 @@ for(i in 1:dim(variable)[2]){
   aic.table[length(candidate)+1,i] <- candidate[which.min(aic.choice)] #最小的AIC-value對應的機率分布
 }
 
+# ------------------- export table -----------------------
+file <- paste("E:/R_output/CHIA-YUANG/result/", year, "ks.xlsx", sep="")
+write.xlsx(ks.table,file)
+file <- paste("E:/R_output/CHIA-YUANG/result/", year, "chi.xlsx", sep="")
+write.xlsx(chi.table,file)
+file <- paste("E:/R_output/CHIA-YUANG/result/", year, "aic.xlsx", sep="")
+write.xlsx(aic.table,file)
+
+c(rnorm(100, 0, 3))
