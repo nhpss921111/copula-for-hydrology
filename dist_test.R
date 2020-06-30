@@ -1,5 +1,5 @@
 # 開始撰寫日期：2020/06/13
-# 完成撰寫日期：2020/06/29
+# 完成撰寫日期：2020/06/30
 # 統計檢定
 # 以"蘭陽溪-家源橋"為例
 # 候選分布：norm,lnorm,gumbel,weibull,gamma
@@ -7,7 +7,7 @@
 # K-S適合度檢定
 # 等機率卡方適合度檢定
 # AIC準則選最佳分布
-# gamma和lgamma的初始值要調整!!!
+# gamma的初始值要調整!!!
 # 結果請參考：par.table & ks.table & chi.table & aic.table
 # By連育成 
 
@@ -29,8 +29,8 @@ library(ggplot2) #繪圖用
 #
 # Read data from excel flie
 setwd("E:/R_reading/CHIA-YUANG")
-year <- c("1974-1986") # 請輸入年分：
-data <- read.xlsx(file.path(getwd(),"1974-1986.xlsx"),sheetIndex="Sheet1", # 請輸入年分：
+year <- c("1974-2019") # 請輸入年分：
+data <- read.xlsx(file.path(getwd(),"1974-2019.xlsx"),sheetIndex="Sheet1", # 請輸入年分：
                   startRow = 1,endRow = 2000,
                   header = T,colIndex =2:3,encoding = "UTF-8")
 attach(data)
@@ -53,7 +53,7 @@ S <- rm.data$S
 #
 print("參數估計")
 candidate <- c("norm","lnorm","gumbel","weibull","gamma")
-dgumbel <- function(x, a, b) 1/b*exp((a-x)/b)*exp(-exp((a-x)/b))
+dgumbel <- function(x, a, b) 1/b*exp((a-x)/b)*exp(-exp((a-x)/b)) # a:location, b:scale
 pgumbel <- function(q, a, b) exp(-exp((a-q)/b))
 qgumbel <- function(p, a, b) a-b*log(-log(p))
 #
@@ -89,35 +89,28 @@ for(i in 1:dim(variable)[2]){
                    paste0("q", candidate[dist]))
     #md <- fitdistr(x, distribution, start = list(parameter1 = 1, parameter2 = 1))
     if(candidate[dist] == "norm"){
-      md <- fitdist(var, dist = dist.char[1])
-      par1 <- md$estimate[1] #fitting參數1
-      par2 <- md$estimate[2] #參數2
-      print(c(par1, par2))
-      cdfcomp(md)}
+      md <- fitdist(var, dist = dist.char[1])}
     if(candidate[dist] == "lnorm"){
-      md <- fitdist(var, dist = dist.char[1], start = list(meanlog=1, sdlog=1))
-      par1 <- md$estimate[1] #fitting參數1
-      par2 <- md$estimate[2] #參數2
-      print(c(par1, par2))
-      cdfcomp(md)}
+      md <- fitdist(var, dist = dist.char[1], start = list(meanlog=1, sdlog=1))}
     if(candidate[dist] == "gumbel"){
-      md <- eevd(var,method = "mle") 
-      par1 <- md$parameters[1] #fitting參數1
-      par2 <- md$parameters[2] #參數2
-      print(c(par1, par2))}
+      fitgumbel <- eevd(var,method = "mle")  # 先計算初始值
+      md <- fitdist(var, dist = dist.char[1], 
+                    start = list(a=as.numeric(fitgumbel$parameters[1]),
+                                 b=as.numeric(fitgumbel$parameters[2])))}
     if(candidate[dist] == "weibull"){
-      md <- fitdist(var, dist = dist.char[1])
-      par1 <- md$estimate[1] #fitting參數1
-      par2 <- md$estimate[2] #參數2
-      print(c(par1, par2))
-      cdfcomp(md)}
+      md <- fitdist(var, dist = dist.char[1])}
     if(candidate[dist] == "gamma"){
-      md <- fitdist(var, dist = dist.char[1],lower = 0, upper=Inf) 
-      # start=list(shape=1,scale=1) # control=list(trace=1, REPORT=1)
-      par1 <- md$estimate[1] #fitting參數1
-      par2 <- md$estimate[2] #參數2
-      print(c(par1, par2))
-      cdfcomp(md)}
+      md <- fitdist(var, dist = dist.char[1],lower=0, upper=Inf)}
+    par1 <- md$estimate[1] #fitting參數1
+    par2 <- md$estimate[2] #參數2
+    print(c(par1, par2))
+
+    #表示要儲存成png的格式
+    setwd("E:/R_output/CHIA-YUANG/result")
+    png(paste(year,colnames(variable)[i],candidate[dist],".png",sep=""), width=1200, height=800)
+    cdfcomp(md,)
+    dev.off() #最後要關掉輸出圖片裝置 
+    # parameter 擺放設定
     if(i==1){
       par.table[dist,1] <- as.numeric(par1) 
       par.table[dist,2] <- as.numeric(par2)}
@@ -166,7 +159,6 @@ for(i in 1:dim(variable)[2]){
       aic <- abic.gumbel(var,par1,par2)
       aic.table[dist,i] <- aic$AIC # 將AIC-value整理成表格
       print(paste0(candidate[dist], "AIC值: ", aic$AIC))}
-    
   }
   # 每個延時P-value排序，變成數值再排序
   ks.choice <- rank(as.numeric(ks.table[(1:dist),i])) 
@@ -178,13 +170,12 @@ for(i in 1:dim(variable)[2]){
   aic.choice <- rank(as.numeric(aic.table[(1:dist),i])) 
   aic.table[length(candidate)+1,i] <- candidate[which.min(aic.choice)] #最小的AIC-value對應的機率分布
 }
-
-# ------------------- export table -----------------------
+#
+# ------------------- export table ------------------------------------
+#
 file <- paste("E:/R_output/CHIA-YUANG/result/", year, "ks.xlsx", sep="")
 write.xlsx(ks.table,file)
 file <- paste("E:/R_output/CHIA-YUANG/result/", year, "chi.xlsx", sep="")
 write.xlsx(chi.table,file)
 file <- paste("E:/R_output/CHIA-YUANG/result/", year, "aic.xlsx", sep="")
 write.xlsx(aic.table,file)
-
-c(rnorm(100, 0, 3))
