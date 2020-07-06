@@ -1,5 +1,5 @@
 # 開始撰寫日期：2020/06/13
-# 完成撰寫日期：2020/06/30
+# 完成撰寫日期：2020/07/06
 # 統計檢定
 # 以"蘭陽溪-家源橋"為例
 # 候選分布：norm,lnorm,gumbel,weibull,gamma
@@ -12,7 +12,6 @@
 # By連育成 
 
 rm(list = ls())
-library(xlsx) # 讀取excel
 library(stats) # 機率分布
 library(actuar) # 機率分布
 library(dplyr) # 資料整理
@@ -30,9 +29,8 @@ library(ggplot2) #繪圖用
 # Read data from excel flie
 setwd("E:/R_reading/CHIA-YUANG")
 year <- c("1974-2019") # 請輸入年分：
-data <- read.xlsx(file.path(getwd(),"1974-2019.xlsx"),sheetIndex="Sheet1", # 請輸入年分：
-                  startRow = 1,endRow = 2000,
-                  header = T,colIndex =2:3,encoding = "UTF-8")
+data <- read.csv(file.path(getwd(),"1974-2019.csv"),header = T) # 請輸入年分：
+data <- data[,-1]
 attach(data)
 #
 # ----------------------------- Remove missing value ------------------------------
@@ -40,14 +38,14 @@ attach(data)
 #summary(data)
 #describe(data)
 # 計算missing value個數
-sum(is.na(data$Q)) #data have missing value
-sum(is.na(data$S)) #data have missing value
+sum(is.na(data$Discharge)) #data have missing value
+sum(is.na(data$Suspended.Load)) #data have missing value
 # 移除missing value
 complete.cases(data)
 rm.data <- data[complete.cases(data), ]
 # 重新定義變數
-Q <- rm.data$Q
-S <- rm.data$S
+Q <- rm.data$Discharge
+S <- rm.data$Suspended.Load
 #
 # ------------------------------------------------------------------------------------
 #
@@ -173,9 +171,9 @@ for(i in 1:dim(variable)[2]){
 #
 # ------------------- export table ------------------------------------
 #
-file <- paste("E:/R_output/CHIA-YUANG/result/", year, "ks.xlsx", sep="")
-write.xlsx(ks.table,file)
-file <- paste("E:/R_output/CHIA-YUANG/result/", year, "chi.xlsx", sep="")
-write.xlsx(chi.table,file)
-file <- paste("E:/R_output/CHIA-YUANG/result/", year, "aic.xlsx", sep="")
-write.xlsx(aic.table,file)
+file <- paste("E:/R_output/CHIA-YUANG/result/", year, "ks.csv", sep="")
+write.csv(ks.table,file)
+file <- paste("E:/R_output/CHIA-YUANG/result/", year, "chi.csv", sep="")
+write.csv(chi.table,file)
+file <- paste("E:/R_output/CHIA-YUANG/result/", year, "aic.csv", sep="")
+write.csv(aic.table,file)
