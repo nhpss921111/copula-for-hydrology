@@ -1,6 +1,6 @@
 # copula
 # 開始日期：2020/07/08
-# 完成日期：2020/07/13
+# 完成日期：2020/07/17
 # By 連育成
 #
 rm(list=ls())
@@ -18,16 +18,21 @@ library(gumbel)
 library(ggplot2) #繪圖用
 library(VineCopula)
 library(copula)
+# 輸出表格
+export <- c("y")
 # 輸入邊際分布
 margin.dist <-c("lnorm","lnorm") 
 # Read data from excel flie
 month<- c(1) # 請輸入月分：
 input <- c(paste0(month,"month.csv"))
+#
+aic.table <- matrix(nrow=12,ncol=3)
 for (m in month){
   setwd("E:/R_reading/CHIA-YUANG")
   data <- read.csv(file.path(getwd(),input[m]),header = T) # 請輸入月分：
   data <- data[,-1]
   attach(data)
+  print(paste0(m,"月"))
   #
   # ----------------------------- Remove missing value ------------------------------
   #
@@ -94,15 +99,18 @@ for (m in month){
         par.table[dist,4] <- as.numeric(par2)}
     }
   }
+  #
+  # ------------------- ML method -----------------
+  #
   var_a <- pobs(Q)
   var_b <- pobs(S)
   data.probs <- cbind(var_a, var_b)
   plot(var_a,var_b,col="red")
-  #selectedCopula <- BiCopSelect(var_a, var_b, familyset = NA)
   # 建立copula
-  g3 <- gumbelCopula(1,dim=2)
+  g3 <- gumbelCopula(1,dim=2,use.indepC="FALSE")
   f3 <- frankCopula(1,dim=2)
   c3 <- claytonCopula(1,dim=2)
+  a3 <- amhCopula(1,dim=2)
   # 建立mvdc
   gMvd2 <- mvdc(g3,c("lnorm","lnorm"),
                 param =list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]), 
@@ -113,19 +121,74 @@ for (m in month){
   cMvd2 <- mvdc(c3,c("lnorm","lnorm"),
                 param =list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]), 
                             list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
-  # fit mvdc
-  #loglikMvdc(c(2, 2, 2, 2, 3), variable, gMvd2)
+  aMvd2 <- mvdc(a3,c("lnorm","lnorm"),
+                param =list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]), 
+                            list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
+  # 估計 mvdc參數：margins的參數 和 copula的參數
   mm <- apply(variable, 2, mean)
   vv <- apply(variable, 2, var)
   b1.0 <- c(mm[1]^2/vv[1], vv[1]/mm[1])
   b2.0 <- c(mm[2]^2/vv[2], vv[2]/mm[2])
   a.0 <- sin(cor(variable[, 1], variable[, 2], method = "kendall") * pi/2)
-  start <- c(b1.0, b2.0, a.0)
-  fit <- fitMvdc(variable, gMvd2)# c(par.table[2,1],par.table[2,2],
-                                            #par.table[2,3],par.table[2,4], a.0))
-                 #optim.control = list(trace = TRUE, maxit = 1000))
-  # mvdc(archmCopula(family="clayton",param=2),
-  #     margins=c("lnorm","lnorm"),
-  #    paramMargins=list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]), 
-  #                     list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
+  # start <- c(b1.0, b2.0, a.0)
+  #fit.ml.g <- fitMvdc(variable, gMvd2, start=as.numeric(start))
+  #fit.ml.f <- fitMvdc(variable, fMvd2, start=as.numeric(start))
+  #fit.ml.c <- fitMvdc(variable, cMvd2, start=as.numeric(start))
+  #fit.ml.a <- fitMvdc(variable, aMvd2, start=as.numeric(start))
+  #optim.control = list(trace = TRUE, maxit = 1000))
+  # 
+  # ------------------------ IFM method -------------------------
+  # 
+  loglik.marg <- function(b, x) sum(dlnorm(x, meanlog = b[1], sdlog = b[2], log = TRUE))
+  ctrl <- list(fnscale = -1)
+  b1hat <- optim(b1.0, fn = loglik.marg, x = variable[, 1], control = ctrl)$par
+  b2hat <- optim(b2.0, fn = loglik.marg, x = variable[, 2], control = ctrl)$par
+  udat <- cbind(plnorm(variable[, 1], meanlog = b1hat[1], sdlog = b1hat[2]),
+                plnorm(variable[, 2], meanlog = b2hat[1], sdlog = b2hat[2]))
+  fit.ifm.g <- fitCopula(gMvd2@copula, udat, start = a.0)
+  fit.ifm.f <- fitCopula(fMvd2@copula, udat, start = a.0)
+  fit.ifm.c <- fitCopula(cMvd2@copula, udat, start = a.0)
+  fit.ifm.a <- fitCopula(aMvd2@copula, udat, start = a.0)
+  
+  # ----------------------- 適合度檢定 -----------------------------
+  gfg <- gofCopula(gumbelCopula(fit.ifm.g@estimate, dim=2), pobs(variable),N = 2000,optim.method = "BFGS")
+  gff <- gofCopula(frankCopula(fit.ifm.f@estimate, dim=2), pobs(variable),N = 2000,optim.method = "BFGS")
+  gfc <- gofCopula(claytonCopula(fit.ifm.c@estimate, dim=2), pobs(variable),N = 2000,optim.method = "BFGS")
+  #gfa <- gofCopula(amhCopula(dim=2), pobs(variable),N = 2000)
+  aic.table[m,1] <- gfg$p.value
+  aic.table[m,2] <- gff$p.value
+  aic.table[m,3] <- gfc$p.value
+  
+  #aic.choice <- rank(as.numeric(aic.table[(1:dist),i])) 
+  #aic.table[length(candidate)+1,i] <- candidate[which.max(aic.choice)] #最大的P-value對應的機率分布
+  #
+  # ------------------------- plotting --------------------------------
+  #
+  # # 3D plain scatterplot of the density, plot of the density and contour plot
+  # par(mfrow = c(1, 3))
+  # scatterplot3d(u[,1], u[,2], pdf_, color="red", main="Density", xlab ="u1", ylab="u2", zlab="dCopula", pch=".")
+  # persp(mycopula, dCopula, main ="Density")
+  # contour(mycopula, dCopula, xlim = c(0, 1), ylim=c(0, 1), main = "Contour plot")
+  # #
+  # # 3D plain scatterplot of the CDF, plot of the CDF and contour plot
+  # par(mfrow = c(1, 3))
+  # scatterplot3d(u[,1], u[,2], cdf, color="red", main="CDF", xlab = "u1", ylab="u2", zlab="pCopula",pch=".")
+  # persp(mycopula, pCopula, main = "CDF")
+  # contour(mycopula, pCopula, xlim = c(0, 1), ylim=c(0, 1), main = "Contour plot")
+  # #
+  # # 3D plain scatterplot of the multivariate distribution
+  # par(mfrow = c(1, 2))
+  # scatterplot3d(v[,1],v[,2], pdf_mvd, color="red", main="Density", xlab = "u1", ylab="u2", zlab="pMvdc",pch=".")
+  # scatterplot3d(v[,1],v[,2], cdf_mvd, color="red", main="CDF", xlab = "u1", ylab="u2", zlab="pMvdc",pch=".")
+  # persp(multivariate_dist, dMvdc, xlim = c(-4, 4), ylim=c(0, 2), main = "Density")
+  # contour(multivariate_dist, dMvdc, xlim = c(-4, 4), ylim=c(0, 2), main = "Contour plot")
+  # persp(multivariate_dist, pMvdc, xlim = c(-4, 4), ylim=c(0, 2), main = "CDF")
+  # contour(multivariate_dist, pMvdc, xlim = c(-4, 4), ylim=c(0, 2), main = "Contour plot")
 }
+# export table
+if (export=="y"){
+  colnames(aic.table)<-c("gumbelcopula","frankcopula","claytoncopula")
+  file <- paste("E:/R_output/CHIA-YUANG/result/copula_aic.csv", sep="")
+  write.csv(aic.table,file)
+}
+
