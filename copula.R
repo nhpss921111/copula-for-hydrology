@@ -1,6 +1,6 @@
 # copula
 # 開始日期：2020/07/08
-# 完成日期：2020/07/17
+# 完成日期：2020/08/06
 # By 連育成
 #
 rm(list=ls())
@@ -18,15 +18,17 @@ library(gumbel)
 library(ggplot2) #繪圖用
 library(VineCopula)
 library(copula)
+library(scatterplot3d)
 # 輸出表格
-export <- c("y")
+export <- c("n")
 # 輸入邊際分布
 margin.dist <-c("lnorm","lnorm") 
 # Read data from excel flie
-month<- c(1) # 請輸入月分：
+month<- c(12) # 請輸入月分：
 input <- c(paste0(month,"month.csv"))
 #
-aic.table <- matrix(nrow=12,ncol=3)
+pvalue.table <- matrix(nrow=12,ncol=3)
+colnames(pvalue.table) <- c("gumbel","frank","clayton")
 for (m in month){
   setwd("E:/R_reading/CHIA-YUANG")
   data <- read.csv(file.path(getwd(),input[m]),header = T) # 請輸入月分：
@@ -146,6 +148,7 @@ for (m in month){
   udat <- cbind(plnorm(variable[, 1], meanlog = b1hat[1], sdlog = b1hat[2]),
                 plnorm(variable[, 2], meanlog = b2hat[1], sdlog = b2hat[2]))
   fit.ifm.g <- fitCopula(gMvd2@copula, udat, start = a.0)
+  summary(fit.ifm.g)
   fit.ifm.f <- fitCopula(fMvd2@copula, udat, start = a.0)
   fit.ifm.c <- fitCopula(cMvd2@copula, udat, start = a.0)
   fit.ifm.a <- fitCopula(aMvd2@copula, udat, start = a.0)
@@ -155,18 +158,50 @@ for (m in month){
   gff <- gofCopula(frankCopula(fit.ifm.f@estimate, dim=2), pobs(variable),N = 2000,optim.method = "BFGS")
   gfc <- gofCopula(claytonCopula(fit.ifm.c@estimate, dim=2), pobs(variable),N = 2000,optim.method = "BFGS")
   #gfa <- gofCopula(amhCopula(dim=2), pobs(variable),N = 2000)
-  aic.table[m,1] <- gfg$p.value
-  aic.table[m,2] <- gff$p.value
-  aic.table[m,3] <- gfc$p.value
+  pvalue.table[m,1] <- gfg$p.value
+  pvalue.table[m,2] <- gff$p.value
+  pvalue.table[m,3] <- gfc$p.value
   
   #aic.choice <- rank(as.numeric(aic.table[(1:dist),i])) 
   #aic.table[length(candidate)+1,i] <- candidate[which.max(aic.choice)] #最大的P-value對應的機率分布
   #
-  # ------------------------- plotting --------------------------------
-  #
+  # # ------------------------- plotting --------------------------------
+  # #
+  # #
+  # # Build the bivariate distribution
+  # my_dist <- mvdc(gumbelCopula(param = fit.ifm.g@estimate, dim = 2), margins = c("lnorm","lnorm"), 
+  #                               paramMargins=list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]), 
+  #                                            list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
+  # 
+  # # Generate random sample observations from the multivariate distribution
+  # #v <- rMvdc(5000, my_dist)
+  # # Compute the density
+  # pdf_mvd <- dMvdc(data.probs, my_dist)
+  # # Compute the CDF
+  # cdf_mvd <- pMvdc(data.probs, my_dist)
+  # 
+  # # 3D plain scatterplot of the generated bivariate distribution
+  # par(mfrow = c(1, 2))
+  # scatterplot3d(var_a, var_b, pdf_mvd, color="red", main="Density", xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
+  # scatterplot3d(var_a, var_b, cdf_mvd, color="red", main="CDF", xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
+  # persp(my_dist, dMvdc, xlim = c(0, 1), ylim=c(0, 1), main = "Density",xlab = "Q", ylab="Qs")
+  # contour(my_dist, dMvdc, xlim = c(0, 1), ylim=c(0, 1), main = "Contour plot",xlab = "Q", ylab="Qs")
+  # persp(my_dist, pMvdc, xlim = c(0, 1), ylim=c(0, 1), main = "CDF",xlab = "Q", ylab="Qs")
+  # contour(my_dist, pMvdc, xlim = c(0, 1), ylim=c(0, 1), main = "Contour plot",xlab = "Q", ylab="Qs")
+  
+  # # ------------------------------------------------------------------------------
+  # # Compute the density
+  # pdf_ <- dCopula(Q, mycopula)
+  # # Compute the CDF
+  # cdf <- pCopula(Q, mycopula)
+  # # Compute the density
+  # pdf_mvd <- dMvdc(v, multivariate_dist)
+  # # Compute the CDF
+  # cdf_mvd <- pMvdc(v, multivariate_dist)
+  # #
   # # 3D plain scatterplot of the density, plot of the density and contour plot
   # par(mfrow = c(1, 3))
-  # scatterplot3d(u[,1], u[,2], pdf_, color="red", main="Density", xlab ="u1", ylab="u2", zlab="dCopula", pch=".")
+  # scatterplot3d(variable[, 1], variable[, 2], pdf_, color="red", main="Density", xlab ="Q", ylab="Qs", zlab="dCopula", pch=".")
   # persp(mycopula, dCopula, main ="Density")
   # contour(mycopula, dCopula, xlim = c(0, 1), ylim=c(0, 1), main = "Contour plot")
   # #
@@ -187,8 +222,8 @@ for (m in month){
 }
 # export table
 if (export=="y"){
-  colnames(aic.table)<-c("gumbelcopula","frankcopula","claytoncopula")
-  file <- paste("E:/R_output/CHIA-YUANG/result/copula_aic.csv", sep="")
-  write.csv(aic.table,file)
+  colnames(pvalue.table)<-c("gumbelcopula","frankcopula","claytoncopula")
+  file <- paste("E:/R_output/CHIA-YUANG/result/copula_pvalue.csv", sep="")
+  write.csv(pvalue.table,file)
 }
 
