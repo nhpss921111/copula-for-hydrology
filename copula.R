@@ -1,6 +1,6 @@
 # copula
 # 開始日期：2020/07/08
-# 完成日期：2020/08/06
+# 完成日期：2020/08/19
 # By 連育成
 #
 rm(list=ls())
@@ -24,7 +24,7 @@ export <- c("n")
 # 輸入邊際分布
 margin.dist <-c("lnorm","lnorm") 
 # Read data from excel flie
-month<- c(12) # 請輸入月分：
+month<- c(1:12) # 請輸入月分：
 input <- c(paste0(month,"month.csv"))
 #
 pvalue.table <- matrix(nrow=12,ncol=3)
@@ -109,10 +109,10 @@ for (m in month){
   data.probs <- cbind(var_a, var_b)
   plot(var_a,var_b,col="red")
   # 建立copula
-  g3 <- gumbelCopula(1,dim=2,use.indepC="FALSE")
-  f3 <- frankCopula(1,dim=2)
-  c3 <- claytonCopula(1,dim=2)
-  a3 <- amhCopula(1,dim=2)
+  g3 <- gumbelCopula(1,use.indepC="FALSE")
+  f3 <- frankCopula(1)
+  c3 <- claytonCopula(1)
+  a3 <- amhCopula(1)
   # 建立mvdc
   gMvd2 <- mvdc(g3,c("lnorm","lnorm"),
                 param =list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]), 
@@ -152,11 +152,17 @@ for (m in month){
   fit.ifm.f <- fitCopula(fMvd2@copula, udat, start = a.0)
   fit.ifm.c <- fitCopula(cMvd2@copula, udat, start = a.0)
   fit.ifm.a <- fitCopula(aMvd2@copula, udat, start = a.0)
-  
+  #
   # ----------------------- 適合度檢定 -----------------------------
-  gfg <- gofCopula(gumbelCopula(fit.ifm.g@estimate, dim=2), pobs(variable),N = 2000,optim.method = "BFGS")
-  gff <- gofCopula(frankCopula(fit.ifm.f@estimate, dim=2), pobs(variable),N = 2000,optim.method = "BFGS")
-  gfc <- gofCopula(claytonCopula(fit.ifm.c@estimate, dim=2), pobs(variable),N = 2000,optim.method = "BFGS")
+  #
+  print(paste0("第",m,"個月的適合度檢定"))
+  gfg <- gofCopula(gumbelCopula(fit.ifm.g@estimate, dim=2), pobs(variable),N = 2000
+                   ,method = "Sn", estim.method = "mpl", simulation = "pb")
+  gff <- gofCopula(frankCopula(fit.ifm.f@estimate, dim=2), pobs(variable),N = 2000
+                   ,method = "Sn", estim.method = "mpl", simulation = "pb")
+  gfc <- gofCopula(claytonCopula(fit.ifm.c@estimate, dim=2), pobs(variable),N = 1000
+                   ,method = "Sn", estim.method = "mpl", simulation = "pb", ties=TRUE
+                   ,optim.method = "BFGS")
   #gfa <- gofCopula(amhCopula(dim=2), pobs(variable),N = 2000)
   pvalue.table[m,1] <- gfg$p.value
   pvalue.table[m,2] <- gff$p.value
