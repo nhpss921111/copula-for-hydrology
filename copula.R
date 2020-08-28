@@ -1,6 +1,6 @@
 # copula
 # 開始日期：2020/07/08
-# 完成日期：2020/08/21
+# 完成日期：2020/08/28
 # By 連育成
 #
 rm(list=ls())
@@ -14,8 +14,8 @@ library(reliaR) # AIC of gumbel
 library(lestat) # inverse CDF
 library(goftest) # 適合度檢定
 library(goft) # 適合度檢定
-library(gumbel)
-library(ggplot2) #繪圖用
+library(gumbel) # for gumbel copula
+library(ggplot2) # 繪圖用
 library(VineCopula)
 library(copula)
 library(scatterplot3d)
@@ -25,8 +25,11 @@ export <- c("n")
 # 輸入邊際分布
 margin.dist <-c("lnorm","lnorm") 
 
+# 執行適合度檢定
+gof <- c("n")
+
 # Read data from excel flie
-month<- c(1) # 請輸入月分：
+month<- c(1:12) # 請輸入月分：
 input <- c(paste0(month,"month.csv"))
 
 # 建立copula參數表格
@@ -108,7 +111,6 @@ for (m in month){
       if(i==2){ #S
         par.table[dist,3] <- as.numeric(par1) 
         par.table[dist,4] <- as.numeric(par2)}
-      
     }
   
   }
@@ -179,27 +181,29 @@ for (m in month){
   #
   # ------------------------ Goodness of fit test -----------------------------
   #
-  # print(paste0("第",m,"個月的適合度檢定"))
-  # gfg <- gofCopula(gumbelCopula(fit.ifm.g@estimate, dim=2), pobs(variable),N = 2000
-  #                  ,method = "Sn", estim.method = "mpl", simulation = "pb")
-  # gff <- gofCopula(frankCopula(fit.ifm.f@estimate, dim=2), pobs(variable),N = 2000
-  #                  ,method = "Sn", estim.method = "mpl", simulation = "pb")
-  # gfc <- gofCopula(claytonCopula(fit.ifm.c@estimate, dim=2), pobs(variable),N = 1000
-  #                  ,method = "Sn", estim.method = "mpl", simulation = "pb", ties=TRUE
-  #                  ,optim.method = "BFGS")
-  # #gfa <- gofCopula(amhCopula(dim=2), pobs(variable),N = 2000)
-  # pvalue.table[m,1] <- gfg$p.value
-  # pvalue.table[m,2] <- gff$p.value
-  # pvalue.table[m,3] <- gfc$p.value
-  # #
-  # #aic.choice <- rank(as.numeric(aic.table[(1:dist),i]))
-  # #aic.table[length(candidate)+1,i] <- candidate[which.max(aic.choice)] #最大的P-value對應的機率分布
-  # #
+  if (gof=="y"){
+    print(paste0("第",m,"個月的適合度檢定"))
+    gfg <- gofCopula(gumbelCopula(fit.ifm.g@estimate, dim=2), pobs(variable),N = 2000
+                   ,method = "Sn", estim.method = "mpl", simulation = "pb")
+    gff <- gofCopula(frankCopula(fit.ifm.f@estimate, dim=2), pobs(variable),N = 2000
+                   ,method = "Sn", estim.method = "mpl", simulation = "pb")
+    gfc <- gofCopula(claytonCopula(fit.ifm.c@estimate, dim=2), pobs(variable),N = 1000
+                   ,method = "Sn", estim.method = "mpl", simulation = "pb", ties=TRUE
+                   ,optim.method = "BFGS")
+    #gfa <- gofCopula(amhCopula(dim=2), pobs(variable),N = 2000)
+    pvalue.table[m,1] <- gfg$p.value
+    pvalue.table[m,2] <- gff$p.value
+    pvalue.table[m,3] <- gfc$p.value
+    #
+  }
+  #aic.choice <- rank(as.numeric(aic.table[(1:dist),i]))
+  #aic.table[length(candidate)+1,i] <- candidate[which.max(aic.choice)] #最大的P-value對應的機率分布
+  #
   # # ------------------------ plotting --------------------------------
   # #
+  # 尚未寫選擇出圖之copula的迴圈!!!
   ## Generate the gunbel copula and sample some observations
   #
-  plot(1)
   mycopula <- gumbelCopula(param = fit.ifm.g@estimate, dim = 2)
   u <- rCopula(2000, mycopula)
   # Compute the density
@@ -239,16 +243,35 @@ for (m in month){
   persp(my_dist, pMvdc, xlim = c(0, 50), ylim=c(0, 1500), main =  paste0("第",m,"個月的CDF"),xlab = "Q", ylab="Qs")
   contour(my_dist, pMvdc, xlim = c(0, 50), ylim=c(0, 1500), main =  paste0("第",m,"個月的Contour plot"), xlab = "Q", ylab="Qs")
   #
-  # conditional copula
+  # 建立 conditional copula distribution function
   #
-  # h-functions of the Gaussian copula
-  data(daxreturns)
-  cop <- BiCop(family = 4, par = fit.ifm.g@estimate)
-  h <- BiCopHfunc(var_a, var_b, cop) # BiCopHfunc(u1, u2, family, par,....)
+  #gumbel copula parameter
+  print("開始建立conditional copula distribution function")
+  gum.cop <- gumbelCopula(param=fit.ifm.g@estimate)
+  # 建立雙變數分布函數
+  Mvdc <- mvdc(gum.cop,c("lnorm","lnorm"),
+               param =list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]),
+                           list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
+  # 建立Q與Qs表格: x.samp
+  test.samp <- matrix(ncol=2)
+  qs <- seq(from=1, to=250, by=1) # 調整Qs大小
+  test.samp <- matrix(nrow=250,ncol=1) # 調整Qs大小
+  n <- 1
   
-  # or using the fast versions
-  h1 <- BiCopHfunc1(var_a, var_b, cop) # Given var_a
-  all.equal(h$hfunc1, h1) #檢查用
+  while (n<max(Q)){ # 調整Q的大小
+    test.samp[,1] <- n
+    x.samp <- cbind(test.samp,qs)
+    copula_density <- dMvdc(x.samp, Mvdc, log=FALSE)
+    fqs <- dlnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
+    fx <- copula_density*fqs
+    par(mfrow = c(1, 1))
+    # 輸出PDF的圖
+    setwd("C:/Users/user/Desktop/PDF")
+    png(paste0(m,"月流量",n,"cms.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+    plot(qs,fx,type="line",xlab="Qs",ylab="probs",main=paste0(m,"月時流量為",n,"cms之輸砂量PDF"))
+    dev.off()
+    n <- n+1
+  }
 }
 # export table
 if (export=="y"){
