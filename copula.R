@@ -1,6 +1,6 @@
 # copula
 # 開始日期：2020/07/08
-# 完成日期：2020/08/28
+# 完成日期：2020/08/31
 # By 連育成
 #
 rm(list=ls())
@@ -17,8 +17,8 @@ library(goft) # 適合度檢定
 library(gumbel) # for gumbel copula
 library(ggplot2) # 繪圖用
 library(VineCopula)
-library(copula)
-library(scatterplot3d)
+library(copula) #
+library(scatterplot3d) #畫3D圖
 # 輸出表格
 export <- c("n")
 
@@ -28,8 +28,8 @@ margin.dist <-c("lnorm","lnorm")
 # 執行適合度檢定
 gof <- c("n")
 
-# Read data from excel flie
-month<- c(1:12) # 請輸入月分：
+# Read data from csv flie
+month<- c(1) # 請輸入月分：
 input <- c(paste0(month,"month.csv"))
 
 # 建立copula參數表格
@@ -117,7 +117,7 @@ for (m in month){
   #file <- paste0("E:/R_output/CHIA-YUANG/result/",m,"margin_par.csv", sep="")
   #write.csv(par.table,file)
   #
-  # ------------------------ ML method -----------------
+  # ------------------------ IFM method -------------------------
   #
   var_a <- pobs(Q)
   var_b <- pobs(S)
@@ -147,15 +147,7 @@ for (m in month){
   b1.0 <- c(mm[1]^2/vv[1], vv[1]/mm[1])
   b2.0 <- c(mm[2]^2/vv[2], vv[2]/mm[2])
   a.0 <- sin(cor(variable[, 1], variable[, 2], method = "kendall") * pi/2)
-  # start <- c(b1.0, b2.0, a.0)
-  #fit.ml.g <- fitMvdc(variable, gMvd2, start=as.numeric(start))
-  #fit.ml.f <- fitMvdc(variable, fMvd2, start=as.numeric(start))
-  #fit.ml.c <- fitMvdc(variable, cMvd2, start=as.numeric(start))
-  #fit.ml.a <- fitMvdc(variable, aMvd2, start=as.numeric(start))
-  #optim.control = list(trace = TRUE, maxit = 1000))
-  #
-  # ------------------------ IFM method -------------------------
-  #
+  # 對數概似函數
   loglik.marg <- function(b, x) sum(dlnorm(x, meanlog = b[1], sdlog = b[2], log = TRUE))
   ctrl <- list(fnscale = -1)
   b1hat <- optim(b1.0, fn = loglik.marg, x = variable[, 1], control = ctrl)$par
@@ -199,7 +191,7 @@ for (m in month){
   #aic.choice <- rank(as.numeric(aic.table[(1:dist),i]))
   #aic.table[length(candidate)+1,i] <- candidate[which.max(aic.choice)] #最大的P-value對應的機率分布
   #
-  # # ------------------------ plotting --------------------------------
+  # # ------------------------ copula function plotting --------------------------------
   # #
   # 尚未寫選擇出圖之copula的迴圈!!!
   ## Generate the gunbel copula and sample some observations
@@ -243,7 +235,7 @@ for (m in month){
   persp(my_dist, pMvdc, xlim = c(0, 50), ylim=c(0, 1500), main =  paste0("第",m,"個月的CDF"),xlab = "Q", ylab="Qs")
   contour(my_dist, pMvdc, xlim = c(0, 50), ylim=c(0, 1500), main =  paste0("第",m,"個月的Contour plot"), xlab = "Q", ylab="Qs")
   #
-  # 建立 conditional copula distribution function
+  # ----------------- 建立 conditional copula distribution function ------------------
   #
   #gumbel copula parameter
   print("開始建立conditional copula distribution function")
@@ -257,22 +249,54 @@ for (m in month){
   qs <- seq(from=1, to=250, by=1) # 調整Qs大小
   test.samp <- matrix(nrow=250,ncol=1) # 調整Qs大小
   n <- 1
-  
-  while (n<max(Q)){ # 調整Q的大小
+  # 全部範圍出圖
+  # while (n<max(Q)){ # 調整Q的大小
+  #   test.samp[,1] <- n
+  #   x.samp <- cbind(test.samp,qs)
+  #   copula_density <- dMvdc(x.samp, Mvdc, log=FALSE)
+  #   fqs <- dlnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
+  #   fx <- copula_density*fqs
+  #   par(mfrow = c(1, 1))
+  #   # 輸出PDF的圖
+  #   setwd("C:/Users/user/Desktop/PDF")
+  #   png(paste0(m,"月流量",n,"cms.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+  #   plot(qs,fx,type="line",xlab="Qs",ylab="probs",main=paste0(m,"月時流量為",n,"cms之輸砂量PDF"))
+  #   dev.off()
+  #   n <- n+1
+  # }
+  #
+  # 同月份，每10cms之PDF疊在一起
+  #
+  n <- 1
+  par(mfrow = c(1, 1))
+  qn <- seq(from=25, to=100, length.out=4)
+  for (n in qn){
     test.samp[,1] <- n
     x.samp <- cbind(test.samp,qs)
     copula_density <- dMvdc(x.samp, Mvdc, log=FALSE)
     fqs <- dlnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
     fx <- copula_density*fqs
-    par(mfrow = c(1, 1))
+    #par(mfrow = c(1, 1))
+    
     # 輸出PDF的圖
-    setwd("C:/Users/user/Desktop/PDF")
-    png(paste0(m,"月流量",n,"cms.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+    #setwd("C:/Users/user/Desktop/PDF")
+    #png(paste0(m,"月流量",n,"cms.png"),width = 1250, height = 700, units = "px", pointsize = 12)
     plot(qs,fx,type="line",xlab="Qs",ylab="probs",main=paste0(m,"月時流量為",n,"cms之輸砂量PDF"))
-    dev.off()
-    n <- n+1
+    #par(new=TRUE)
+    pdf <- data.frame(qs,fx)
+    ggplot(aes(x = qs))
+    #dev.off()
+    
+    
   }
+  
+  #
+  # 同流量，不同月份之PDF疊在一起
+  #
+  
+  
 }
+
 # export table
 if (export=="y"){
   colnames(pvalue.table)<-c("gumbelcopula","frankcopula","claytoncopula")
