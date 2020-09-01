@@ -19,6 +19,7 @@ library(ggplot2) # 繪圖用
 library(VineCopula)
 library(copula) #
 library(scatterplot3d) #畫3D圖
+library(ggplot2)
 # 輸出表格
 export <- c("n")
 
@@ -250,8 +251,8 @@ for (m in month){
   test.samp <- matrix(nrow=250,ncol=1) # 調整Qs大小
   n <- 1
   # 全部範圍出圖
-  # while (n<max(Q)){ # 調整Q的大小
-  #   test.samp[,1] <- n
+  # while (q<max(Q)){ # 調整Q的大小
+  #   test.samp[,1] <- q
   #   x.samp <- cbind(test.samp,qs)
   #   copula_density <- dMvdc(x.samp, Mvdc, log=FALSE)
   #   fqs <- dlnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
@@ -270,26 +271,33 @@ for (m in month){
   n <- 1
   par(mfrow = c(1, 1))
   qn <- seq(from=25, to=100, length.out=4)
-  for (n in qn){
-    test.samp[,1] <- n
+  pdf.new <- c()
+  for (q in qn){
+    test.samp[,1] <- q
     x.samp <- cbind(test.samp,qs)
     copula_density <- dMvdc(x.samp, Mvdc, log=FALSE)
     fqs <- dlnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
     fx <- copula_density*fqs
-    #par(mfrow = c(1, 1))
-    
-    # 輸出PDF的圖
-    #setwd("C:/Users/user/Desktop/PDF")
-    #png(paste0(m,"月流量",n,"cms.png"),width = 1250, height = 700, units = "px", pointsize = 12)
-    plot(qs,fx,type="line",xlab="Qs",ylab="probs",main=paste0(m,"月時流量為",n,"cms之輸砂量PDF"))
-    #par(new=TRUE)
-    pdf <- data.frame(qs,fx)
-    ggplot(aes(x = qs))
-    #dev.off()
-    
+    #test.samp[,1] <- paste0(q,"cms")
+    q <- paste0(q,"cms")
+    pdf<- data.frame(q,qs,fx)
+    pdf.new <- rbind(pdf.new,pdf)
     
   }
   
+  p <- ggplot(pdf.new) +
+    geom_line(aes(x = qs, y = fx, color=pdf.new$q))+ 
+    #geom_point(aes(x = qs, y = fx)) +
+    labs(title=paste0(m,"月25,50,75,100cms之PDF"),
+         x="輸砂量(公噸/日)",
+         y="PDF")
+  
+  print(p)
+  
+  # ggplot(pdf.new, aes(x = qs, y = fx, color = q)) +
+  #   geom_point(aes(x = qs, y = fx, fill = q))
+  # ggplot(pdf.new, aes(x = qs, y = fx, color = q)) +
+  #   geom_area(stat = "bin")
   #
   # 同流量，不同月份之PDF疊在一起
   #
