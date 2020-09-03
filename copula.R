@@ -1,6 +1,6 @@
 # copula
 # 開始日期：2020/07/08
-# 完成日期：2020/08/31
+# 完成日期：2020/09/03
 # By 連育成
 #
 rm(list=ls())
@@ -17,22 +17,40 @@ library(goft) # 適合度檢定
 library(gumbel) # for gumbel copula
 library(ggplot2) # 繪圖用
 library(VineCopula)
-library(copula) #
+library(copula) # 聯結函數
 library(scatterplot3d) #畫3D圖
-library(ggplot2)
-# 輸出表格
-export <- c("n")
+library(ggplot2) #繪圖用
 
-# 輸入邊際分布
-margin.dist <-c("lnorm","lnorm") 
-
-# 執行適合度檢定
-gof <- c("n")
-
+# ======================== 執行前請先設定以下參數 =========================
+#
 # Read data from csv flie
-month<- c(1) # 請輸入月分：
+month<- c(5:8) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
+#
+# 1.相同流量不同月份之情況(只能擇一)
+sameq <- c("y")  # "n" or "y"
+if (sameq == "y"){
+  qn <- c(50) # 輸入流量：
+}
+# 2.相同月份不同流量之情況(只能擇一)
+samemonth <- c("n") # "n" or "y"
+if (samemonth=="y"){
+  qn <- seq(from=25, to=100, length.out=4) # 輸入流量:
+}
+# 輸入邊際分布
+margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
+#
+# 執行適合度檢定
+gof <- c("n") # "n" or "y"
+#
+# 輸出表格
+export <- c("n") # "n" or "y"
+#
+# copula function plotting
+cfp <- c("n") # "n" or "y"
 
+# ============================ 主程式 ==================================
+#
 # 建立copula參數表格
 ifm.table <- matrix(nrow=12,ncol=3)
 colnames(ifm.table) <- c("gumbel","frank","clayton")
@@ -41,10 +59,14 @@ colnames(ifm.table) <- c("gumbel","frank","clayton")
 pvalue.table <- matrix(nrow=12,ncol=3)
 colnames(pvalue.table) <- c("gumbel","frank","clayton")
 
-# 主程式
+pdf.new <- c() # 不同月份下，相同流量之PDF
+j <- 0 # 計算月份次數
+
+# 主要執行迴圈
 for (m in month){
+  j <- j + 1 # 計算月份次數
   setwd("E:/R_reading/CHIA-YUANG")
-  data <- read.csv(file.path(getwd(),input[m]),header = T) # 請輸入月分：
+  data <- read.csv(file.path(getwd(),input[j])) 
   data <- data[,-1]
   attach(data)
   print(paste0(m,"月"))
@@ -197,44 +219,46 @@ for (m in month){
   # 尚未寫選擇出圖之copula的迴圈!!!
   ## Generate the gunbel copula and sample some observations
   #
-  mycopula <- gumbelCopula(param = fit.ifm.g@estimate, dim = 2)
-  u <- rCopula(2000, mycopula)
-  # Compute the density
-  pdf_ <- dCopula(u, mycopula)
-  # Compute the CDF
-  cdf <- pCopula(u, mycopula)
-  #
-  ## 3D plain scatterplot of the density, plot of the density and contour plot
-  par(mfrow = c(1, 3))
-  scatterplot3d(u[,1], u[,2], pdf_, color="red", main="Density",xlab ="u1", ylab="u2", zlab="dCopula", pch=".")
-  persp(mycopula, dCopula, main ="Density")
-  contour(mycopula, dCopula, xlim = c(0, 1), ylim=c(0, 1), main = "Contour plot")
-  #
-  ## 3D plain scatterplot of the CDF, plot of the CDF and contour plot
-  par(mfrow = c(1, 3))
-  scatterplot3d(u[,1], u[,2], cdf, color="red", main="CDF", xlab = "u1", ylab="u2", zlab="pCopula",pch=".")
-  persp(mycopula, pCopula, main = "CDF")
-  contour(mycopula, pCopula, xlim = c(0, 1), ylim=c(0, 1), main = "Contour plot")
-  #
-  ## Build the bivariate distribution
-  #
-  my_dist <- mvdc(mycopula, margins = c("lnorm","lnorm"),
-                  paramMargins=list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]),
-                                    list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
-  # Generate random sample observations from the multivariate distribution
-  v <- rMvdc(5000, my_dist)
-  # Compute the density
-  pdf_mvd <- dMvdc(v, my_dist)
-  # Compute the CDF
-  cdf_mvd <- pMvdc(v, my_dist)
-  ## 3D plain scatterplot of the generated bivariate distribution
-  par(mfrow = c(1, 2))
-  scatterplot3d(v[,1],v[,2], pdf_mvd, color="red", main= paste0("第",m,"個月的Density"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
-  scatterplot3d(v[,1],v[,2], cdf_mvd, color="red", main=paste0("第",m,"個月的CDF"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
-  persp(my_dist, dMvdc, xlim = c(0, 50), ylim=c(0, 1500), main = paste0("第",m,"個月的Density"), xlab = "Q", ylab="Qs")
-  contour(my_dist, dMvdc, xlim = c(0, 50), ylim=c(0, 1500), main =  paste0("第",m,"個月的Contour plot"), xlab = "Q", ylab="Qs")
-  persp(my_dist, pMvdc, xlim = c(0, 50), ylim=c(0, 1500), main =  paste0("第",m,"個月的CDF"),xlab = "Q", ylab="Qs")
-  contour(my_dist, pMvdc, xlim = c(0, 50), ylim=c(0, 1500), main =  paste0("第",m,"個月的Contour plot"), xlab = "Q", ylab="Qs")
+  if (cfp == "y"){
+    mycopula <- gumbelCopula(param = fit.ifm.g@estimate, dim = 2)
+    u <- rCopula(2000, mycopula)
+    # Compute the density
+    pdf_ <- dCopula(u, mycopula)
+    # Compute the CDF
+    cdf <- pCopula(u, mycopula)
+  
+    ## 3D plain scatterplot of the density, plot of the density and contour plot
+    par(mfrow = c(1, 3))
+    scatterplot3d(u[,1], u[,2], pdf_, color="red", main="Density",xlab ="u1", ylab="u2", zlab="dCopula", pch=".")
+    persp(mycopula, dCopula, main ="Density")
+    contour(mycopula, dCopula, xlim = c(0, 1), ylim=c(0, 1), main = "Contour plot")
+  
+    ## 3D plain scatterplot of the CDF, plot of the CDF and contour plot
+    par(mfrow = c(1, 3))
+    scatterplot3d(u[,1], u[,2], cdf, color="red", main="CDF", xlab = "u1", ylab="u2", zlab="pCopula",pch=".")
+    persp(mycopula, pCopula, main = "CDF")
+    contour(mycopula, pCopula, xlim = c(0, 1), ylim=c(0, 1), main = "Contour plot")
+  
+    # Build the bivariate distribution
+  
+    my_dist <- mvdc(mycopula, margin.dist,
+                   paramMargins=list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]),
+                                     list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
+    # Generate random sample observations from the multivariate distribution
+    v <- rMvdc(5000, my_dist)
+    # Compute the density
+    pdf_mvd <- dMvdc(v, my_dist)
+    # Compute the CDF
+    cdf_mvd <- pMvdc(v, my_dist)
+    ## 3D plain scatterplot of the generated bivariate distribution
+    par(mfrow = c(1, 2))
+    scatterplot3d(v[,1],v[,2], pdf_mvd, color="red", main= paste0("第",m,"個月的Density"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
+    scatterplot3d(v[,1],v[,2], cdf_mvd, color="red", main=paste0("第",m,"個月的CDF"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
+    persp(my_dist, dMvdc, xlim = c(0, 50), ylim=c(0, 1500), main = paste0("第",m,"個月的Density"), xlab = "Q", ylab="Qs")
+    contour(my_dist, dMvdc, xlim = c(0, 50), ylim=c(0, 1500), main =  paste0("第",m,"個月的Contour plot"), xlab = "Q", ylab="Qs")
+    persp(my_dist, pMvdc, xlim = c(0, 50), ylim=c(0, 1500), main =  paste0("第",m,"個月的CDF"),xlab = "Q", ylab="Qs")
+    contour(my_dist, pMvdc, xlim = c(0, 50), ylim=c(0, 1500), main =  paste0("第",m,"個月的Contour plot"), xlab = "Q", ylab="Qs")
+  }
   #
   # ----------------- 建立 conditional copula distribution function ------------------
   #
@@ -242,7 +266,7 @@ for (m in month){
   print("開始建立conditional copula distribution function")
   gum.cop <- gumbelCopula(param=fit.ifm.g@estimate)
   # 建立雙變數分布函數
-  Mvdc <- mvdc(gum.cop,c("lnorm","lnorm"),
+  Mvdc <- mvdc(gum.cop, margin.dist,
                param =list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]),
                            list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
   # 建立Q與Qs表格: x.samp
@@ -266,45 +290,69 @@ for (m in month){
   #   n <- n+1
   # }
   #
-  # 同月份，每10cms之PDF疊在一起
+  # 同月份，不同流量之PDF疊在一起
   #
-  n <- 1
-  par(mfrow = c(1, 1))
-  qn <- seq(from=25, to=100, length.out=4)
-  pdf.new <- c()
-  for (q in qn){
-    test.samp[,1] <- q
-    x.samp <- cbind(test.samp,qs)
-    copula_density <- dMvdc(x.samp, Mvdc, log=FALSE)
-    fqs <- dlnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
-    fx <- copula_density*fqs
-    #test.samp[,1] <- paste0(q,"cms")
-    q <- paste0(q,"cms")
-    pdf<- data.frame(q,qs,fx)
-    pdf.new <- rbind(pdf.new,pdf)
+  if (samemonth == "y"){
+    n <- 1
+    par(mfrow = c(1, 1))
     
+    pdf.new <- c()
+    for (q in qn){
+      test.samp[,1] <- q
+      x.samp <- cbind(test.samp,qs)
+      copula_density <- dMvdc(x.samp, Mvdc, log=FALSE)
+      fqs <- dlnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
+      fx <- copula_density*fqs
+      q <- paste0(q,"cms")
+      pdf<- data.frame(q,qs,fx)
+      pdf.new <- rbind(pdf.new,pdf)
+    }
+    setwd("C:/Users/user/Desktop/PDF")
+    png(paste0(m,"月流量",n,"cms.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+    sameMonth <- ggplot(pdf.new) +
+      geom_line(aes(x = qs, y = fx, color = q))+
+      labs(title=paste0(m,"月之PDF"),
+           x="輸砂量(公噸/日)",
+           y="PDF") +
+      theme_bw() + # 白底
+      theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+      theme(panel.grid.minor = element_blank())  # 隱藏次要格線
+    dev.off()
+    print(sameMonth)
   }
-  
-  p <- ggplot(pdf.new) +
-    geom_line(aes(x = qs, y = fx, color=pdf.new$q))+ 
-    #geom_point(aes(x = qs, y = fx)) +
-    labs(title=paste0(m,"月25,50,75,100cms之PDF"),
-         x="輸砂量(公噸/日)",
-         y="PDF")
-  
-  print(p)
-  
-  # ggplot(pdf.new, aes(x = qs, y = fx, color = q)) +
-  #   geom_point(aes(x = qs, y = fx, fill = q))
-  # ggplot(pdf.new, aes(x = qs, y = fx, color = q)) +
-  #   geom_area(stat = "bin")
   #
   # 同流量，不同月份之PDF疊在一起
   #
-  
-  
+  if (sameq=="y"){
+    n <- 1
+    par(mfrow = c(1, 1))
+    for (q in qn){
+      test.samp[,1] <- q
+      x.samp <- cbind(test.samp,qs)
+      copula_density <- dMvdc(x.samp, Mvdc, log=FALSE)
+      fqs <- dlnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
+      fx <- copula_density*fqs
+      
+      q <- paste0(q,"cms")
+      mon <- paste0(m,"month")
+      pdf<- data.frame(mon, q, qs, fx)
+      pdf.new <- rbind(pdf.new, pdf)
+    }
+  }
+
 }
 
+if (sameq == "y"){
+sameQ <- ggplot(pdf.new) +
+  geom_line(aes(x = qs, y = fx, color = mon))+
+  labs(title=paste0("不同月下",q,"之PDF"),
+       x="輸砂量(公噸/日)",
+       y="PDF") +
+  theme_bw() + # 白底
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank())  # 隱藏次要格線
+print(sameQ)
+}
 # export table
 if (export=="y"){
   colnames(pvalue.table)<-c("gumbelcopula","frankcopula","claytoncopula")
