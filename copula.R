@@ -19,23 +19,23 @@ library(ggplot2) # 繪圖用
 library(VineCopula)
 library(copula) # 聯結函數
 library(scatterplot3d) #畫3D圖
-library(ggplot2) #繪圖用
+library(ggplot2) #繪圖用 
 
 # ======================== 執行前請先設定以下參數 =========================
 #
 # Read data from csv flie
-month<- c(5:8) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(1,2,3,4,12) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
-# 1.相同流量不同月份之情況(只能擇一)
+# 1.相同流量不同月份之情況(1. 2. 只能擇一執行)
 sameq <- c("y")  # "n" or "y"
 if (sameq == "y"){
-  qn <- c(50) # 輸入流量：
+  qn <- c(15) # 輸入流量：(只能輸入一個值)
 }
-# 2.相同月份不同流量之情況(只能擇一)
+# 2.相同月份不同流量之情況(1. 2. 只能擇一執行)
 samemonth <- c("n") # "n" or "y"
 if (samemonth=="y"){
-  qn <- seq(from=25, to=100, length.out=4) # 輸入流量:
+  qn <- seq(from=100, to=150, length.out=6) # 輸入流量: 
 }
 # 輸入邊際分布
 margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
@@ -59,8 +59,15 @@ colnames(ifm.table) <- c("gumbel","frank","clayton")
 pvalue.table <- matrix(nrow=12,ncol=3)
 colnames(pvalue.table) <- c("gumbel","frank","clayton")
 
+# 建立Q與Qs表格: x.samp
+test.samp <- matrix(ncol=2)
+qs <- seq(from=1, to=250, by=1) # 調整Qs大小
+test.samp <- matrix(nrow=250,ncol=1) # 調整Qs大小
+
 pdf.new <- c() # 不同月份下，相同流量之PDF
 j <- 0 # 計算月份次數
+
+# 資料放在 pdf.new
 
 # 主要執行迴圈
 for (m in month){
@@ -145,7 +152,7 @@ for (m in month){
   var_a <- pobs(Q)
   var_b <- pobs(S)
   data.probs <- cbind(var_a, var_b)
-  plot(var_a,var_b,col="red")
+  #plot(var_a,var_b,col="red")
   # 建立copula
   g3 <- gumbelCopula(1,use.indepC="FALSE")
   f3 <- frankCopula(1)
@@ -181,7 +188,7 @@ for (m in month){
     fit.ifm.g <- fitCopula(gMvd2@copula, udat, start = a.0)
     fit.ifm.f <- fitCopula(fMvd2@copula, udat, start = a.0)
     fit.ifm.c <- fitCopula(cMvd2@copula, udat, start = a.0)}
-  if (m==12){
+  if (m==12){ # 12月資料無法用claytoncopula
     fit.ifm.g <- fitCopula(gMvd2@copula, udat, start = a.0)
     fit.ifm.f <- fitCopula(fMvd2@copula, udat, start = a.0)}
   #fit.ifm.a <- fitCopula(aMvd2@copula, udat, start = a.0)
@@ -190,9 +197,9 @@ for (m in month){
     ifm.table[m,1] <- fit.ifm.g@estimate
     ifm.table[m,2] <- fit.ifm.f@estimate
     ifm.table[m,3] <- fit.ifm.c@estimate}
-  if (m==12){
+  if (m==12){  #12月無法使用
     ifm.table[m,1] <- fit.ifm.g@estimate
-    ifm.table[m,2] <- fit.ifm.f@estimate} #12月無法使用
+    ifm.table[m,2] <- fit.ifm.f@estimate}
   #
   # ------------------------ Goodness of fit test -----------------------------
   #
@@ -211,8 +218,6 @@ for (m in month){
     pvalue.table[m,3] <- gfc$p.value
     #
   }
-  #aic.choice <- rank(as.numeric(aic.table[(1:dist),i]))
-  #aic.table[length(candidate)+1,i] <- candidate[which.max(aic.choice)] #最大的P-value對應的機率分布
   #
   # # ------------------------ copula function plotting --------------------------------
   # #
@@ -226,7 +231,7 @@ for (m in month){
     pdf_ <- dCopula(u, mycopula)
     # Compute the CDF
     cdf <- pCopula(u, mycopula)
-  
+    
     ## 3D plain scatterplot of the density, plot of the density and contour plot
     par(mfrow = c(1, 3))
     scatterplot3d(u[,1], u[,2], pdf_, color="red", main="Density",xlab ="u1", ylab="u2", zlab="dCopula", pch=".")
@@ -240,16 +245,16 @@ for (m in month){
     contour(mycopula, pCopula, xlim = c(0, 1), ylim=c(0, 1), main = "Contour plot")
   
     # Build the bivariate distribution
-  
     my_dist <- mvdc(mycopula, margin.dist,
-                   paramMargins=list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]),
-                                     list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
+                   paramMargins=list(list(par.table[2,1], par.table[2,2]),
+                                     list(par.table[2,3], par.table[2,4])))
     # Generate random sample observations from the multivariate distribution
     v <- rMvdc(5000, my_dist)
     # Compute the density
     pdf_mvd <- dMvdc(v, my_dist)
     # Compute the CDF
     cdf_mvd <- pMvdc(v, my_dist)
+    
     ## 3D plain scatterplot of the generated bivariate distribution
     par(mfrow = c(1, 2))
     scatterplot3d(v[,1],v[,2], pdf_mvd, color="red", main= paste0("第",m,"個月的Density"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
@@ -267,12 +272,8 @@ for (m in month){
   gum.cop <- gumbelCopula(param=fit.ifm.g@estimate)
   # 建立雙變數分布函數
   Mvdc <- mvdc(gum.cop, margin.dist,
-               param =list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]),
-                           list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
-  # 建立Q與Qs表格: x.samp
-  test.samp <- matrix(ncol=2)
-  qs <- seq(from=1, to=250, by=1) # 調整Qs大小
-  test.samp <- matrix(nrow=250,ncol=1) # 調整Qs大小
+               param =list(list(par.table[2,1], par.table[2,2]),
+                           list(par.table[2,3], par.table[2,4])))
   n <- 1
   # 全部範圍出圖
   # while (q<max(Q)){ # 調整Q的大小
@@ -295,7 +296,6 @@ for (m in month){
   if (samemonth == "y"){
     n <- 1
     par(mfrow = c(1, 1))
-    
     pdf.new <- c()
     for (q in qn){
       test.samp[,1] <- q
@@ -308,17 +308,18 @@ for (m in month){
       pdf.new <- rbind(pdf.new,pdf)
     }
     setwd("C:/Users/user/Desktop/PDF")
-    png(paste0(m,"月流量",n,"cms.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+    png(paste0(m,"月流量之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
     sameMonth <- ggplot(pdf.new) +
-      geom_line(aes(x = qs, y = fx, color = q))+
-      labs(title=paste0(m,"月之PDF"),
-           x="輸砂量(公噸/日)",
-           y="PDF") +
+      geom_line(aes(x = qs, y = fx, color = q),size=1.3)+
+      labs( x="輸砂量(公噸/日)",y="PDF") +
+      scale_color_discrete(name="流量") + #圖例名稱
       theme_bw() + # 白底
       theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-      theme(panel.grid.minor = element_blank())  # 隱藏次要格線
-    dev.off()
+      theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+      theme(text=element_text(size=30)) + # 字體大小
+      theme(legend.position = c(0.9,0.8)) # 調整圖例位置
     print(sameMonth)
+    dev.off()
   }
   #
   # 同流量，不同月份之PDF疊在一起
@@ -332,26 +333,27 @@ for (m in month){
       copula_density <- dMvdc(x.samp, Mvdc, log=FALSE)
       fqs <- dlnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
       fx <- copula_density*fqs
-      
       q <- paste0(q,"cms")
       mon <- paste0(m,"month")
       pdf<- data.frame(mon, q, qs, fx)
       pdf.new <- rbind(pdf.new, pdf)
     }
   }
-
 }
-
 if (sameq == "y"){
-sameQ <- ggplot(pdf.new) +
-  geom_line(aes(x = qs, y = fx, color = mon))+
-  labs(title=paste0("不同月下",q,"之PDF"),
-       x="輸砂量(公噸/日)",
-       y="PDF") +
-  theme_bw() + # 白底
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank())  # 隱藏次要格線
-print(sameQ)
+  setwd("C:/Users/user/Desktop/PDF")
+  png(paste0("流量",q,"之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+  sameQ <- ggplot(pdf.new) +
+    geom_line(aes(x = qs, y = fx, color = mon),size=1.3) + # 畫線圖
+    labs(x="輸砂量(公噸/日)", y="PDF") + # 坐標軸單位
+    scale_color_discrete(name="月份") + # 圖例名稱
+    theme_bw() + # 白底
+    theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+    theme(panel.grid.minor = element_blank()) +  # 隱藏次要格線
+    theme(text=element_text(size=30)) + # 調整字型大小
+    theme(legend.position = c(0.9,0.8)) # 調整圖例位置
+  print(sameQ)
+  dev.off()
 }
 # export table
 if (export=="y"){
