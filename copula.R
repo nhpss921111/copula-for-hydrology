@@ -1,8 +1,9 @@
-# copula
+# Copula
 # 開始日期：2020/07/08
-# 完成日期：2020/09/03
+# 完成日期：2020/09/04
 # By 連育成
-#
+# 待改進地方:邊際分布只能使用lnorm、copula只能使用gumbel
+
 rm(list=ls())
 library(stats) # 機率分布 
 library(actuar) # 機率分布 
@@ -16,39 +17,40 @@ library(goftest) # 適合度檢定
 library(goft) # 適合度檢定
 library(gumbel) # for gumbel copula
 library(ggplot2) # 繪圖用
-library(VineCopula)
+library(VineCopula) # for high dimension copula function
 library(copula) # 聯結函數
 library(scatterplot3d) #畫3D圖
 library(ggplot2) #繪圖用 
 
 # ======================== 執行前請先設定以下參數 =========================
 #
-# Read data from csv flie
+# 1. Read data from csv flie
 month<- c(1,2,3,4,12) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
-# 1.相同流量不同月份之情況(1. 2. 只能擇一執行)
-sameq <- c("y")  # "n" or "y"
+# Case(1)相同流量不同月份之情況
+sameq <- c("n")  # "n" or "y" (case(1),(2) 只能擇一執行)
 if (sameq == "y"){
-  qn <- c(15) # 輸入流量：(只能輸入一個值)
+  qn <- c(200) # 輸入流量：(只能輸入一個值)
 }
-# 2.相同月份不同流量之情況(1. 2. 只能擇一執行)
-samemonth <- c("n") # "n" or "y"
+# Case(2)相同月份不同流量之情況
+samemonth <- c("y") # "n" or "y" (case(1),(2) 只能擇一執行)
 if (samemonth=="y"){
-  qn <- seq(from=100, to=150, length.out=6) # 輸入流量: 
+  qn <- seq(from=10, to=50, length.out=6) # 輸入流量：(起始值,最大值,總分組數)
 }
-# 輸入邊際分布
+# 2. 輸入邊際分布
 margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
-#
-# 執行適合度檢定
+# 3. 執行適合度檢定
 gof <- c("n") # "n" or "y"
-#
-# 輸出表格
+# 4. 輸出表格
 export <- c("n") # "n" or "y"
-#
-# copula function plotting
+# 5. copula function plotting
 cfp <- c("n") # "n" or "y"
-
+#
+# 6. PDF儲存路徑請至line 309、line 343 附近修改
+#
+# 7. PDF之點位資料存在pdf.new裡面
+#
 # ============================ 主程式 ==================================
 #
 # 建立copula參數表格
@@ -94,7 +96,7 @@ for (m in month){
   #
   # ------------------------------------------------------------------------------------
   #
-  print("參數估計")
+  print("邊際分布之參數估計")
   candidate <- c("norm","lnorm","gumbel","weibull","gamma")
   dgumbel <- function(x, a, b) 1/b*exp((a-x)/b)*exp(-exp((a-x)/b)) # a:location, b:scale
   pgumbel <- function(q, a, b) exp(-exp((a-q)/b))
@@ -135,10 +137,10 @@ for (m in month){
       par2 <- md$estimate[2] #參數2
       print(c(par1, par2))
       # parameter 擺放設定
-      if(i==1){ #Q
+      if(i==1){ # Q
         par.table[dist,1] <- as.numeric(par1) 
         par.table[dist,2] <- as.numeric(par2)}
-      if(i==2){ #S
+      if(i==2){ # S
         par.table[dist,3] <- as.numeric(par1) 
         par.table[dist,4] <- as.numeric(par2)}
     }
@@ -152,7 +154,7 @@ for (m in month){
   var_a <- pobs(Q)
   var_b <- pobs(S)
   data.probs <- cbind(var_a, var_b)
-  #plot(var_a,var_b,col="red")
+  #
   # 建立copula
   g3 <- gumbelCopula(1,use.indepC="FALSE")
   f3 <- frankCopula(1)
@@ -197,7 +199,7 @@ for (m in month){
     ifm.table[m,1] <- fit.ifm.g@estimate
     ifm.table[m,2] <- fit.ifm.f@estimate
     ifm.table[m,3] <- fit.ifm.c@estimate}
-  if (m==12){  #12月無法使用
+  if (m==12){  #12月無法使用 claytoncopula
     ifm.table[m,1] <- fit.ifm.g@estimate
     ifm.table[m,2] <- fit.ifm.f@estimate}
   #
@@ -274,7 +276,6 @@ for (m in month){
   Mvdc <- mvdc(gum.cop, margin.dist,
                param =list(list(par.table[2,1], par.table[2,2]),
                            list(par.table[2,3], par.table[2,4])))
-  n <- 1
   # 全部範圍出圖
   # while (q<max(Q)){ # 調整Q的大小
   #   test.samp[,1] <- q
@@ -307,7 +308,7 @@ for (m in month){
       pdf<- data.frame(q,qs,fx)
       pdf.new <- rbind(pdf.new,pdf)
     }
-    setwd("C:/Users/user/Desktop/PDF")
+    setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
     png(paste0(m,"月流量之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
     sameMonth <- ggplot(pdf.new) +
       geom_line(aes(x = qs, y = fx, color = q),size=1.3)+
@@ -341,7 +342,7 @@ for (m in month){
   }
 }
 if (sameq == "y"){
-  setwd("C:/Users/user/Desktop/PDF")
+  setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
   png(paste0("流量",q,"之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
   sameQ <- ggplot(pdf.new) +
     geom_line(aes(x = qs, y = fx, color = mon),size=1.3) + # 畫線圖
