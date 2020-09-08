@@ -25,18 +25,18 @@ library(ggplot2) #繪圖用
 # ======================== 執行前請先設定以下參數 =========================
 #
 # 1. Read data from csv flie
-month<- c(1,2,3,4,12) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(1,2,3,4,5,12) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
 # Case(1)相同流量不同月份之情況
-sameq <- c("n")  # "n" or "y" (case(1),(2) 只能擇一執行)
+sameq <- c("y")  # "n" or "y" (case(1),(2) 只能擇一執行)
 if (sameq == "y"){
-  qn <- c(200) # 輸入流量：(只能輸入一個值)
+  qn <- c(30) # 輸入流量：(只能輸入一個值)
 }
 # Case(2)相同月份不同流量之情況
-samemonth <- c("y") # "n" or "y" (case(1),(2) 只能擇一執行)
+samemonth <- c("n") # "n" or "y" (case(1),(2) 只能擇一執行)
 if (samemonth=="y"){
-  qn <- seq(from=10, to=50, length.out=6) # 輸入流量：(起始值,最大值,總分組數)
+  qn <- seq(from=5, to=20, length.out=4) # 輸入流量：(起始值,最大值,總分組數)
 }
 # 2. 輸入邊際分布
 margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
@@ -317,8 +317,8 @@ for (m in month){
       theme_bw() + # 白底
       theme(panel.grid.major = element_blank()) + # 隱藏主要格線
       theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-      theme(text=element_text(size=30)) + # 字體大小
-      theme(legend.position = c(0.9,0.8)) # 調整圖例位置
+      theme(text=element_text(size=50)) + # 字體大小
+      theme(legend.position = c(0.9,0.7)) # 調整圖例位置
     print(sameMonth)
     dev.off()
   }
@@ -335,7 +335,7 @@ for (m in month){
       fqs <- dlnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
       fx <- copula_density*fqs
       q <- paste0(q,"cms")
-      mon <- paste0(m,"month")
+      mon <- paste0(m,"月")
       pdf<- data.frame(mon, q, qs, fx)
       pdf.new <- rbind(pdf.new, pdf)
     }
@@ -351,8 +351,8 @@ if (sameq == "y"){
     theme_bw() + # 白底
     theme(panel.grid.major = element_blank()) + # 隱藏主要格線
     theme(panel.grid.minor = element_blank()) +  # 隱藏次要格線
-    theme(text=element_text(size=30)) + # 調整字型大小
-    theme(legend.position = c(0.9,0.8)) # 調整圖例位置
+    theme(text=element_text(size=50)) + # 調整字型大小
+    theme(legend.position = c(0.9,0.7)) # 調整圖例位置
   print(sameQ)
   dev.off()
 }
