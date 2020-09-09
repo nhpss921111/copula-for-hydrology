@@ -12,11 +12,10 @@
 # By連育成 
 
 rm(list = ls())
-library(stats) # 機率分布
-library(actuar) # 機率分布
-library(dplyr) # 資料整理
+library(stats) # 機率分布 
+library(actuar) # 機率分布 
+library(dplyr) # 資料整理 
 library(FAdist) # 水文上常用機率分布
-library(vcd) # 估計gumbel參數
 library(fitdistrplus) # 估計參數
 library(EnvStats) # Environmental Statistics, Including US EPA Guidance
 library(reliaR) # AIC of gumbel
@@ -68,7 +67,7 @@ for (m in month){
   rownames(ks.table) <- c(candidate,"good dist")
   colnames(ks.table) <- c(colnames(variable))
   # chi.table 放置p-value
-  chi.table <- matrix(nrow=length(candidate)+1,ncol=dim(variable)[2]) # +1 是為了要放最佳分布的欄位
+  chi.table <- matrix(nrow=length(candidate)+1,ncol=dim(variable)[2]) # +1 是為了要放最佳分布的欄位  
   rownames(chi.table) <- c(candidate,"good dist")
   colnames(chi.table) <- c(colnames(variable))
   # aic.table  放置AIC value
