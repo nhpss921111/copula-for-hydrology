@@ -1,6 +1,6 @@
 # Copula
 # 開始日期：2020/07/08
-# 完成日期：2020/09/04
+# 完成日期：2020/09/09
 # By 連育成
 # 待改進地方:邊際分布只能使用lnorm、copula只能使用gumbel
 
@@ -25,16 +25,16 @@ library(ggplot2) #繪圖用
 # ======================== 執行前請先設定以下參數 =========================
 #
 # 1. Read data from csv flie
-month<- c(1,2,3,4,5,12) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(1,2,3,4,12) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
 # Case(1)相同流量不同月份之情況
-sameq <- c("y")  # "n" or "y" (case(1),(2) 只能擇一執行)
+sameq <- c("n")  # "n" or "y" (case(1),(2) 只能擇一執行)
 if (sameq == "y"){
-  qn <- c(30) # 輸入流量：(只能輸入一個值)
+  qn <- c(40.87) # 輸入流量：(只能輸入一個值)
 }
 # Case(2)相同月份不同流量之情況
-samemonth <- c("n") # "n" or "y" (case(1),(2) 只能擇一執行)
+samemonth <- c("y") # "n" or "y" (case(1),(2) 只能擇一執行)
 if (samemonth=="y"){
   qn <- seq(from=5, to=20, length.out=4) # 輸入流量：(起始值,最大值,總分組數)
 }
@@ -47,9 +47,14 @@ export <- c("n") # "n" or "y"
 # 5. copula function plotting
 cfp <- c("n") # "n" or "y"
 #
-# 6. PDF儲存路徑請至line 309、line 343 附近修改
+# 6. PDF儲存路徑請至line 313、line 348 附近修改
 #
 # 7. PDF之點位資料存在pdf.new裡面
+#
+# 8.# 建立Q與Qs表格: x.samp
+test.samp <- matrix(ncol=2)
+qs <- seq(from=1, to=2000, by=1) # 調整Qs大小
+test.samp <- matrix(nrow=2000,ncol=1) # 調整Qs大小
 #
 # ============================ 主程式 ==================================
 #
@@ -61,10 +66,7 @@ colnames(ifm.table) <- c("gumbel","frank","clayton")
 pvalue.table <- matrix(nrow=12,ncol=3)
 colnames(pvalue.table) <- c("gumbel","frank","clayton")
 
-# 建立Q與Qs表格: x.samp
-test.samp <- matrix(ncol=2)
-qs <- seq(from=1, to=250, by=1) # 調整Qs大小
-test.samp <- matrix(nrow=250,ncol=1) # 調整Qs大小
+
 
 pdf.new <- c() # 不同月份下，相同流量之PDF
 j <- 0 # 計算月份次數
@@ -312,7 +314,8 @@ for (m in month){
     png(paste0(m,"月流量之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
     sameMonth <- ggplot(pdf.new) +
       geom_line(aes(x = qs, y = fx, color = q),size=1.3)+
-      labs( x="輸砂量(公噸/日)",y="PDF") +
+      #geom_vline(aes(xintercept=840.5), colour="blue",size=1.3)+ # 率定曲線的推估值
+      labs(x="輸砂量(公噸/日)",y="PDF") +
       scale_color_discrete(name="流量") + #圖例名稱
       theme_bw() + # 白底
       theme(panel.grid.major = element_blank()) + # 隱藏主要格線
