@@ -25,18 +25,18 @@ library(ggplot2) #繪圖用
 # ======================== 執行前請先設定以下參數 =========================
 #
 # 1. Read data from csv flie
-month<- c(1,2,3,4,12) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(6) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
 # Case(1)相同流量不同月份之情況
 sameq <- c("n")  # "n" or "y" (case(1),(2) 只能擇一執行)
 if (sameq == "y"){
-  qn <- c(40.87) # 輸入流量：(只能輸入一個值)
+  qn <- c(20) # 輸入流量：(只能輸入一個值)
 }
 # Case(2)相同月份不同流量之情況
 samemonth <- c("y") # "n" or "y" (case(1),(2) 只能擇一執行)
 if (samemonth=="y"){
-  qn <- seq(from=5, to=20, length.out=4) # 輸入流量：(起始值,最大值,總分組數)
+  qn <- seq(from=7.64, to=7.64, length.out=1) # 輸入流量：(起始值,最大值,總分組數)
 }
 # 2. 輸入邊際分布
 margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
@@ -53,8 +53,8 @@ cfp <- c("n") # "n" or "y"
 #
 # 8.# 建立Q與Qs表格: x.samp
 test.samp <- matrix(ncol=2)
-qs <- seq(from=1, to=2000, by=1) # 調整Qs大小
-test.samp <- matrix(nrow=2000,ncol=1) # 調整Qs大小
+qs <- seq(from=1, to=250, by=1) # 調整Qs大小
+test.samp <- matrix(nrow=250,ncol=1) # 調整Qs大小
 #
 # ============================ 主程式 ==================================
 #
@@ -304,7 +304,7 @@ for (m in month){
       test.samp[,1] <- q
       x.samp <- cbind(test.samp,qs)
       copula_density <- dMvdc(x.samp, Mvdc, log=FALSE)
-      fqs <- dlnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
+      fqs <- plnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
       fx <- copula_density*fqs
       q <- paste0(q,"cms")
       pdf<- data.frame(q,qs,fx)
@@ -314,8 +314,9 @@ for (m in month){
     png(paste0(m,"月流量之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
     sameMonth <- ggplot(pdf.new) +
       geom_line(aes(x = qs, y = fx, color = q),size=1.3)+
-      #geom_vline(aes(xintercept=840.5), colour="blue",size=1.3)+ # 率定曲線的推估值
-      labs(x="輸砂量(公噸/日)",y="PDF") +
+      geom_vline(aes(xintercept=32.83), colour="blue",size=1.3)+ # 觀測輸砂量
+      geom_vline(aes(xintercept=56.78), colour="green4",size=1.3)+ # 率定曲線的推估輸砂量
+      labs(x="輸砂量(公噸)",y="PDF") +
       scale_color_discrete(name="流量") + #圖例名稱
       theme_bw() + # 白底
       theme(panel.grid.major = element_blank()) + # 隱藏主要格線
@@ -335,7 +336,7 @@ for (m in month){
       test.samp[,1] <- q
       x.samp <- cbind(test.samp,qs)
       copula_density <- dMvdc(x.samp, Mvdc, log=FALSE)
-      fqs <- dlnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
+      fqs <- plnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
       fx <- copula_density*fqs
       q <- paste0(q,"cms")
       mon <- paste0(m,"月")
@@ -349,7 +350,7 @@ if (sameq == "y"){
   png(paste0("流量",q,"之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
   sameQ <- ggplot(pdf.new) +
     geom_line(aes(x = qs, y = fx, color = mon),size=1.3) + # 畫線圖
-    labs(x="輸砂量(公噸/日)", y="PDF") + # 坐標軸單位
+    labs(x="輸砂量(公噸)", y="PDF") + # 坐標軸單位
     scale_color_discrete(name="月份") + # 圖例名稱
     theme_bw() + # 白底
     theme(panel.grid.major = element_blank()) + # 隱藏主要格線
