@@ -36,7 +36,7 @@ if (sameq == "y"){
 # Case(2)相同月份不同流量之情況
 samemonth <- c("y") # "n" or "y" (case(1),(2) 只能擇一執行)
 if (samemonth=="y"){
-  qn <- seq(from=7.64, to=7.64, length.out=1) # 輸入流量：(起始值,最大值,總分組數)
+  qn <- seq(from=2, to=2, length.out=1) # 輸入流量：(起始值,最大值,總分組數)
 }
 # 2. 輸入邊際分布
 margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
@@ -51,10 +51,9 @@ cfp <- c("n") # "n" or "y"
 #
 # 7. PDF之點位資料存在pdf.new裡面
 #
-# 8.# 建立Q與Qs表格: x.samp
-test.samp <- matrix(ncol=2)
-qs <- seq(from=1, to=250, by=1) # 調整Qs大小
-test.samp <- matrix(nrow=250,ncol=1) # 調整Qs大小
+# 8.# 建立Q表格: q.samp
+qs <- seq(from=1, to=250, by=1) # 調整Qs範圍
+q.samp <- matrix(nrow=250,ncol=1) # qs的範圍決定q的數量
 #
 # ============================ 主程式 ==================================
 #
@@ -278,6 +277,17 @@ for (m in month){
   Mvdc <- mvdc(gum.cop, margin.dist,
                param =list(list(par.table[2,1], par.table[2,2]),
                            list(par.table[2,3], par.table[2,4])))
+  v <- rMvdc(20000,Mvdc)
+  plot(sort(v[,1]),sort(v[,2]))
+  pdf_mvd <- dMvdc(v, Mvdc)
+  #qs.pdf <- dlnorm(,meanlog=par.table[2,3], sdlog=par.table[2,4])
+  #checkcdf <- pdf_mvd*q.pdf*qs.pdf
+  # Compute the CDF
+  cdf_mvd <- pMvdc(v, Mvdc)
+  contour(Mvdc,pMvdc,xlim = c(0, 200), ylim=c(0, 25000))
+  scatterplot3d(x=v[,1], y=v[,2],z=pdf_mvd,color="red", main=paste0("第",m,"個月的PDF"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
+  scatterplot3d(x=v[,1], y=v[,2],z=cdf_mvd,color="red", main=paste0("第",m,"個月的CDF"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
+  #scatterplot3d(x=v[,1], y=v[,2],z=checkcdf,color="red", main=paste0("第",m,"個月的checkCDF"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
   # 全部範圍出圖
   # while (q<max(Q)){ # 調整Q的大小
   #   test.samp[,1] <- q
@@ -301,19 +311,20 @@ for (m in month){
     par(mfrow = c(1, 1))
     pdf.new <- c()
     for (q in qn){
-      test.samp[,1] <- q
-      x.samp <- cbind(test.samp,qs)
-      copula_density <- dMvdc(x.samp, Mvdc, log=FALSE)
-      fqs <- plnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
-      fx <- copula_density*fqs
+      q.samp[,1] <- q
+      data.samp <- cbind(q.samp,qs)
+      mvdc.density <- dMvdc(data.samp, Mvdc, log=FALSE)
+      q.pdf <- dlnorm(qn,meanlog=par.table[2,1], sdlog=par.table[2,2])
+      condition.pdf <- mvdc.density/q.pdf
       q <- paste0(q,"cms")
-      pdf<- data.frame(q,qs,fx)
+      pdf<- data.frame(q,qs,condition.pdf)
       pdf.new <- rbind(pdf.new,pdf)
     }
+    # PDF出圖
     setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
     png(paste0(m,"月流量之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
     sameMonth <- ggplot(pdf.new) +
-      geom_line(aes(x = qs, y = fx, color = q),size=1.3)+
+      geom_line(aes(x = qs, y = condition.pdf, color = q),size=1.3)+
       geom_vline(aes(xintercept=32.83), colour="blue",size=1.3)+ # 觀測輸砂量
       geom_vline(aes(xintercept=56.78), colour="green4",size=1.3)+ # 率定曲線的推估輸砂量
       labs(x="輸砂量(公噸)",y="PDF") +
@@ -325,6 +336,8 @@ for (m in month){
       theme(legend.position = c(0.9,0.7)) # 調整圖例位置
     print(sameMonth)
     dev.off()
+    # CDF驗證
+    plot(qs,cumsum(condition.pdf),type="l",ylim=c(0,1))
   }
   #
   # 同流量，不同月份之PDF疊在一起
@@ -334,22 +347,20 @@ for (m in month){
     par(mfrow = c(1, 1))
     for (q in qn){
       test.samp[,1] <- q
-      x.samp <- cbind(test.samp,qs)
-      copula_density <- dMvdc(x.samp, Mvdc, log=FALSE)
-      fqs <- plnorm(qs,meanlog=par.table[2,3], sdlog=par.table[2,4])
-      fx <- copula_density*fqs
+      data.samp <- cbind(q.samp,qs)
+      mvdc.density <- dMvdc(data.samp, Mvdc, log=FALSE)
+      q.pdf <- dlnorm(qn,meanlog=par.table[2,1], sdlog=par.table[2,2])
+      condition.pdf <- mvdc.density/q.pdf
       q <- paste0(q,"cms")
       mon <- paste0(m,"月")
-      pdf<- data.frame(mon, q, qs, fx)
+      pdf<- data.frame(mon, q, qs, condition.pdf)
       pdf.new <- rbind(pdf.new, pdf)
     }
-  }
-}
-if (sameq == "y"){
+  # PDF出圖
   setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
   png(paste0("流量",q,"之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
   sameQ <- ggplot(pdf.new) +
-    geom_line(aes(x = qs, y = fx, color = mon),size=1.3) + # 畫線圖
+    geom_line(aes(x = qs, y = condition.pdf, color = mon),size=1.3) + # 畫線圖
     labs(x="輸砂量(公噸)", y="PDF") + # 坐標軸單位
     scale_color_discrete(name="月份") + # 圖例名稱
     theme_bw() + # 白底
@@ -359,6 +370,8 @@ if (sameq == "y"){
     theme(legend.position = c(0.9,0.7)) # 調整圖例位置
   print(sameQ)
   dev.off()
+  # CDF驗證
+  }
 }
 # export table
 if (export=="y"){
