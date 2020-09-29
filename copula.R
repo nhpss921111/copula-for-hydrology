@@ -25,18 +25,18 @@ library(ggplot2) #繪圖用
 # ======================== 執行前請先設定以下參數 =========================
 #
 # 1. Read data from csv flie
-month<- c(6) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(1:12) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
 # Case(1)相同流量不同月份之情況
-sameq <- c("n")  # "n" or "y" (case(1),(2) 只能擇一執行)
+sameq <- c("y")  # "n" or "y" (case(1),(2) 只能擇一執行)
 if (sameq == "y"){
   qn <- c(20) # 輸入流量：(只能輸入一個值)
 }
 # Case(2)相同月份不同流量之情況
-samemonth <- c("y") # "n" or "y" (case(1),(2) 只能擇一執行)
+samemonth <- c("n") # "n" or "y" (case(1),(2) 只能擇一執行)
 if (samemonth=="y"){
-  qn <- seq(from=2, to=2, length.out=1) # 輸入流量：(起始值,最大值,總分組數)
+  qn <- seq(from=5, to=20, length.out=4) # 輸入流量：(起始值,最大值,總分組數)
 }
 # 2. 輸入邊際分布
 margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
@@ -52,8 +52,8 @@ cfp <- c("n") # "n" or "y"
 # 7. PDF之點位資料存在pdf.new裡面
 #
 # 8.# 建立Q表格: q.samp
-qs <- seq(from=1, to=250, by=1) # 調整Qs範圍
-q.samp <- matrix(nrow=250,ncol=1) # qs的範圍決定q的數量
+qs <- seq(from=0.001, to=2500, by=1) # 調整Qs範圍
+q.samp <- matrix(nrow=2500,ncol=1) # qs的範圍決定q的數量
 #
 # ============================ 主程式 ==================================
 #
@@ -107,7 +107,7 @@ for (m in month){
   # 邊際分布參數表格
   par.table <- matrix(nrow=length(candidate),ncol=2*2)
   rownames(par.table) <- c(candidate)
-  colnames(par.table) <- c("par1","par2","par1","par2")
+  colnames(par.table) <- c("par1","par2","par1","par2") 
   #
   for(i in 1:dim(variable)[2]){
     var <- variable[,i]
@@ -310,24 +310,26 @@ for (m in month){
     n <- 1
     par(mfrow = c(1, 1))
     pdf.new <- c()
+    q.group <- 1
     for (q in qn){
       q.samp[,1] <- q
       data.samp <- cbind(q.samp,qs)
       mvdc.density <- dMvdc(data.samp, Mvdc, log=FALSE)
       q.pdf <- dlnorm(qn,meanlog=par.table[2,1], sdlog=par.table[2,2])
-      condition.pdf <- mvdc.density/q.pdf
+      condition.pdf <- mvdc.density/q.pdf[q.group]
       q <- paste0(q,"cms")
       pdf<- data.frame(q,qs,condition.pdf)
       pdf.new <- rbind(pdf.new,pdf)
+      q.group <- q.group + 1
     }
     # PDF出圖
     setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
     png(paste0(m,"月流量之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
     sameMonth <- ggplot(pdf.new) +
-      geom_line(aes(x = qs, y = condition.pdf, color = q),size=1.3)+
-      geom_vline(aes(xintercept=32.83), colour="blue",size=1.3)+ # 觀測輸砂量
-      geom_vline(aes(xintercept=56.78), colour="green4",size=1.3)+ # 率定曲線的推估輸砂量
-      labs(x="輸砂量(公噸)",y="PDF") +
+      geom_line(aes(x = qs, y = condition.pdf, color = q),size=1.3)+  # 畫線圖
+      #geom_vline(aes(xintercept=32.83), colour="blue",size=1.3)+ # 觀測輸砂量
+      #geom_vline(aes(xintercept=56.78), colour="green4",size=1.3)+ # 率定曲線的推估輸砂量
+      labs(x="輸砂量Qs (公噸)",y="PDF") + #座標軸名稱
       scale_color_discrete(name="流量") + #圖例名稱
       theme_bw() + # 白底
       theme(panel.grid.major = element_blank()) + # 隱藏主要格線
@@ -336,8 +338,9 @@ for (m in month){
       theme(legend.position = c(0.9,0.7)) # 調整圖例位置
     print(sameMonth)
     dev.off()
-    # CDF驗證
-    plot(qs,cumsum(condition.pdf),type="l",ylim=c(0,1))
+    # CDF驗證(單一流量)
+    plot(qs,cumsum(condition.pdf),type="l",ylim=c(0,1),xlab="輸砂量Qs(公噸)",ylab="probability")
+    #cumsum(condition.pdf)[2500]
   }
   #
   # 同流量，不同月份之PDF疊在一起
@@ -346,7 +349,7 @@ for (m in month){
     n <- 1
     par(mfrow = c(1, 1))
     for (q in qn){
-      test.samp[,1] <- q
+      q.samp[,1] <- q
       data.samp <- cbind(q.samp,qs)
       mvdc.density <- dMvdc(data.samp, Mvdc, log=FALSE)
       q.pdf <- dlnorm(qn,meanlog=par.table[2,1], sdlog=par.table[2,2])
@@ -361,7 +364,7 @@ for (m in month){
   png(paste0("流量",q,"之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
   sameQ <- ggplot(pdf.new) +
     geom_line(aes(x = qs, y = condition.pdf, color = mon),size=1.3) + # 畫線圖
-    labs(x="輸砂量(公噸)", y="PDF") + # 坐標軸單位
+    labs(x="輸砂量Qs (公噸)", y="PDF") + # 坐標軸單位
     scale_color_discrete(name="月份") + # 圖例名稱
     theme_bw() + # 白底
     theme(panel.grid.major = element_blank()) + # 隱藏主要格線
@@ -379,4 +382,3 @@ if (export=="y"){
   file <- paste("E:/R_output/CHIA-YUANG/result/copula_pvalue.csv", sep="")
   write.csv(pvalue.table,file)
 }
-
