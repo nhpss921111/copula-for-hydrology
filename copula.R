@@ -25,19 +25,24 @@ library(ggplot2) #繪圖用
 # ======================== 執行前請先設定以下參數 =========================
 #
 # 1. Read data from csv flie
-month<- c(1:12) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(1) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
 # Case(1)相同流量不同月份之情況
-sameq <- c("y")  # "n" or "y" (case(1),(2) 只能擇一執行)
+sameq <- c("n")  # "n" or "y" (case(1),(2) 只能擇一執行)
 if (sameq == "y"){
-  qn <- c(20) # 輸入流量：(只能輸入一個值)
+  qn <- c(5) # 輸入流量：(只能輸入一個值)
 }
 # Case(2)相同月份不同流量之情況
-samemonth <- c("n") # "n" or "y" (case(1),(2) 只能擇一執行)
+samemonth <- c("y") # "n" or "y" (case(1),(2) 只能擇一執行)
 if (samemonth=="y"){
-  qn <- seq(from=5, to=20, length.out=4) # 輸入流量：(起始值,最大值,總分組數)
+  qn <-c(10.59,10.07,10.20,10.31)  # 輸入流量：seq(from=10.30, to=10.30, length.out=1);(起始值,最大值,總分組數)
 }
+observation.qs <- c("y")
+if (observation.qs =="y"){
+  ob.qs <- c(122.6,159.15,826.80,16.03)
+}
+#
 # 2. 輸入邊際分布
 margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
 # 3. 執行適合度檢定
@@ -52,8 +57,8 @@ cfp <- c("n") # "n" or "y"
 # 7. PDF之點位資料存在pdf.new裡面
 #
 # 8.# 建立Q表格: q.samp
-qs <- seq(from=0.001, to=2500, by=1) # 調整Qs範圍
-q.samp <- matrix(nrow=2500,ncol=1) # qs的範圍決定q的數量
+qs <- seq(from=0.001, to=1500, by=1) # 調整Qs範圍
+q.samp <- matrix(nrow=1500,ncol=1) # qs的範圍決定q的數量
 #
 # ============================ 主程式 ==================================
 #
@@ -284,9 +289,10 @@ for (m in month){
   #checkcdf <- pdf_mvd*q.pdf*qs.pdf
   # Compute the CDF
   cdf_mvd <- pMvdc(v, Mvdc)
-  contour(Mvdc,pMvdc,xlim = c(0, 200), ylim=c(0, 25000))
+  contour(Mvdc,pMvdc,xlim = c(0, 80), ylim=c(0, 2000),main="雙變數機率分布(CDF)",
+          xlab="流量Q (cms)",ylab="輸砂量Qs (公噸)",labcex = 1.2,lwd=1.5,drawlabels = TRUE)
   scatterplot3d(x=v[,1], y=v[,2],z=pdf_mvd,color="red", main=paste0("第",m,"個月的PDF"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
-  scatterplot3d(x=v[,1], y=v[,2],z=cdf_mvd,color="red", main=paste0("第",m,"個月的CDF"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
+  scatterplot3d(x=v[,1], y=v[,2],z=cdf_mvd,color="red", main=paste0("雙變數機率分布(CDF)"), xlab = "流量Q (cms)", ylab="輸砂量Qs (公噸)", zlab="累積機率",pch=".")
   #scatterplot3d(x=v[,1], y=v[,2],z=checkcdf,color="red", main=paste0("第",m,"個月的checkCDF"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
   # 全部範圍出圖
   # while (q<max(Q)){ # 調整Q的大小
@@ -303,6 +309,39 @@ for (m in month){
   #   dev.off()
   #   n <- n+1
   # }
+  #
+  # 同流量，不同月份之PDF疊在一起
+  #
+  if (sameq=="y"){
+    n <- 1
+    par(mfrow = c(1, 1))
+    for (q in qn){
+      q.samp[,1] <- q
+      data.samp <- cbind(q.samp,qs)
+      mvdc.density <- dMvdc(data.samp, Mvdc, log=FALSE)
+      q.pdf <- dlnorm(qn,meanlog=par.table[2,1], sdlog=par.table[2,2])
+      condition.pdf <- mvdc.density/q.pdf
+      q <- paste0(q,"cms")
+      mon <- paste0(m,"月")
+      pdf<- data.frame(mon, q, qs, condition.pdf)
+      pdf.new <- rbind(pdf.new, pdf)
+    }
+    # PDF出圖
+    setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
+    png(paste0("流量",q,"之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+    sameQ <- ggplot(pdf.new) +
+      geom_line(aes(x = qs, y = condition.pdf, color = mon),size=1.3) + # 畫線圖
+      labs(x="輸砂量Qs (公噸)", y="PDF") + # 坐標軸單位
+      scale_color_discrete(name="月份") + # 圖例名稱
+      theme_bw() + # 白底
+      theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+      theme(panel.grid.minor = element_blank()) +  # 隱藏次要格線
+      theme(text=element_text(size=50)) + # 調整字型大小
+      theme(legend.position = c(0.9,0.7)) # 調整圖例位置
+    print(sameQ)
+    dev.off()
+    # CDF驗證
+  }
   #
   # 同月份，不同流量之PDF疊在一起
   #
@@ -322,6 +361,9 @@ for (m in month){
       pdf.new <- rbind(pdf.new,pdf)
       q.group <- q.group + 1
     }
+    if (observation.qs=="y"){
+      ob.qs <- data.frame(Qs=ob.qs,PDF=NA)
+    }
     # PDF出圖
     setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
     png(paste0(m,"月流量之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
@@ -335,45 +377,12 @@ for (m in month){
       theme(panel.grid.major = element_blank()) + # 隱藏主要格線
       theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
       theme(text=element_text(size=50)) + # 字體大小
-      theme(legend.position = c(0.9,0.7)) # 調整圖例位置
+      theme(legend.position = c(0.85,0.7)) # 調整圖例位置
     print(sameMonth)
     dev.off()
     # CDF驗證(單一流量)
-    plot(qs,cumsum(condition.pdf),type="l",ylim=c(0,1),xlab="輸砂量Qs(公噸)",ylab="probability")
+    #plot(qs,cumsum(condition.pdf),type="l",ylim=c(0,1),xlab="輸砂量Qs(公噸)",ylab="probability")
     #cumsum(condition.pdf)[2500]
-  }
-  #
-  # 同流量，不同月份之PDF疊在一起
-  #
-  if (sameq=="y"){
-    n <- 1
-    par(mfrow = c(1, 1))
-    for (q in qn){
-      q.samp[,1] <- q
-      data.samp <- cbind(q.samp,qs)
-      mvdc.density <- dMvdc(data.samp, Mvdc, log=FALSE)
-      q.pdf <- dlnorm(qn,meanlog=par.table[2,1], sdlog=par.table[2,2])
-      condition.pdf <- mvdc.density/q.pdf
-      q <- paste0(q,"cms")
-      mon <- paste0(m,"月")
-      pdf<- data.frame(mon, q, qs, condition.pdf)
-      pdf.new <- rbind(pdf.new, pdf)
-    }
-  # PDF出圖
-  setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
-  png(paste0("流量",q,"之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
-  sameQ <- ggplot(pdf.new) +
-    geom_line(aes(x = qs, y = condition.pdf, color = mon),size=1.3) + # 畫線圖
-    labs(x="輸砂量Qs (公噸)", y="PDF") + # 坐標軸單位
-    scale_color_discrete(name="月份") + # 圖例名稱
-    theme_bw() + # 白底
-    theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-    theme(panel.grid.minor = element_blank()) +  # 隱藏次要格線
-    theme(text=element_text(size=50)) + # 調整字型大小
-    theme(legend.position = c(0.9,0.7)) # 調整圖例位置
-  print(sameQ)
-  dev.off()
-  # CDF驗證
   }
 }
 # export table
