@@ -1,6 +1,6 @@
 # Copula
 # 開始日期：2020/07/08
-# 完成日期：2020/09/27
+# 完成日期：2020/10/06
 # By 連育成
 # 待改進地方:邊際分布只能使用lnorm、copula只能使用gumbel
 
@@ -25,22 +25,24 @@ library(ggplot2) #繪圖用
 # ======================== 執行前請先設定以下參數 =========================
 #
 # 1. Read data from csv flie
-month<- c(1) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(8) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
 # Case(1)相同流量不同月份之情況
 sameq <- c("n")  # "n" or "y" (case(1),(2) 只能擇一執行)
 if (sameq == "y"){
-  qn <- c(5) # 輸入流量：(只能輸入一個值)
+  qn <- c(20) # 輸入流量：(只能輸入一個值)
 }
 # Case(2)相同月份不同流量之情況
 samemonth <- c("y") # "n" or "y" (case(1),(2) 只能擇一執行)
 if (samemonth=="y"){
-  qn <-c(10.59,10.07,10.20,10.31)  # 輸入流量：seq(from=10.30, to=10.30, length.out=1);(起始值,最大值,總分組數)
+  qn <-c(40.87,39.39,41.69,40.53)  # 輸入流量：seq(from=10.30, to=10.30, length.out=1);(起始值,最大值,總分組數)
 }
 observation.qs <- c("y")
 if (observation.qs =="y"){
-  ob.qs <- c(122.6,159.15,826.80,16.03)
+  ob.qs <- c(12245.21,71363.72,36069.72,28545.90) # 輸入觀測輸砂量：
+  rc.qs <- c(8901.20,8158.45,9328.86,8727.26) # 輸入率定曲線推估輸砂量：
+  qs.table <- data.frame(ob.qs,0)
 }
 #
 # 2. 輸入邊際分布
@@ -57,8 +59,8 @@ cfp <- c("n") # "n" or "y"
 # 7. PDF之點位資料存在pdf.new裡面
 #
 # 8.# 建立Q表格: q.samp
-qs <- seq(from=0.001, to=1500, by=1) # 調整Qs範圍
-q.samp <- matrix(nrow=1500,ncol=1) # qs的範圍決定q的數量
+qs <- seq(from=0.001, to=100000, by=1) # 調整Qs範圍
+q.samp <- matrix(nrow=100000,ncol=1) # qs的範圍決定q的數量
 #
 # ============================ 主程式 ==================================
 #
@@ -357,22 +359,30 @@ for (m in month){
       q.pdf <- dlnorm(qn,meanlog=par.table[2,1], sdlog=par.table[2,2])
       condition.pdf <- mvdc.density/q.pdf[q.group]
       q <- paste0(q,"cms")
+      if (observation.qs=="y"){
+        colnames(qs.table) <- c("Qs","PDF")
+        qs.obser <- qs.table
+        for(i in c(1:length(ob.qs))){
+          plus <- c(0:3)
+          qs.obser <-  add_row(qs.obser,Qs=ob.qs[i],PDF=condition.pdf[ob.qs][i],.after=i+plus[i])
+        }
+      }
       pdf<- data.frame(q,qs,condition.pdf)
       pdf.new <- rbind(pdf.new,pdf)
       q.group <- q.group + 1
     }
-    if (observation.qs=="y"){
-      ob.qs <- data.frame(Qs=ob.qs,PDF=NA)
-    }
     # PDF出圖
     setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
     png(paste0(m,"月流量之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
-    sameMonth <- ggplot(pdf.new) +
-      geom_line(aes(x = qs, y = condition.pdf, color = q),size=1.3)+  # 畫線圖
-      #geom_vline(aes(xintercept=32.83), colour="blue",size=1.3)+ # 觀測輸砂量
+    sameMonth <- ggplot() +
+      geom_line(data=pdf.new,aes(x = qs, y = condition.pdf, color = q),size=1.3)+  # 畫線圖
+      #geom_line(data=qs.obser,aes(x=qs.obser[1:2,1],y=qs.obser[1:2,2],color="blue"),size=1.3)+
+      geom_vline(data=qs.table,aes(xintercept=Qs),color="blue",size=1.3)+ # 觀測輸砂量
+      geom_vline(aes(xintercept=rc.qs),color="red",size=1.3)+ # 觀測輸砂量
       #geom_vline(aes(xintercept=56.78), colour="green4",size=1.3)+ # 率定曲線的推估輸砂量
       labs(x="輸砂量Qs (公噸)",y="PDF") + #座標軸名稱
       scale_color_discrete(name="流量") + #圖例名稱
+      #scale_color_discrete(name="輸砂量") + #圖例名稱
       theme_bw() + # 白底
       theme(panel.grid.major = element_blank()) + # 隱藏主要格線
       theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
