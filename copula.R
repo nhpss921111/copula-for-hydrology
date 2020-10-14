@@ -25,7 +25,7 @@ library(ggplot2) #繪圖用
 # ======================== 執行前請先設定以下參數 =========================
 #
 # 1. Read data from csv flie
-month<- c(8) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(6) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
 # Case(1)相同流量不同月份之情況
@@ -46,7 +46,7 @@ if (observation.qs =="y"){
 }
 #
 # 2. 輸入邊際分布
-margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
+margin.dist <-c("lnorm","gumbel") # 請輸入邊際分布：
 # 3. 執行適合度檢定
 gof <- c("n") # "n" or "y"
 # 4. 輸出表格
@@ -64,14 +64,22 @@ q.samp <- matrix(nrow=100000,ncol=1) # qs的範圍決定q的數量
 #
 # ============================ 主程式 ==================================
 #
-# 建立copula參數表格
-ifm.table <- matrix(nrow=12,ncol=3)
-colnames(ifm.table) <- c("gumbel","frank","clayton")
+# 建立copula參數估計表格(itau, irho, mpl, ml)
+fitgumbel.par <- matrix(nrow=12,ncol=4)
+colnames(fitgumbel.par) <- c("itau","irho","mpl","ml")
+fitfrank.par <- matrix(nrow=12,ncol=4)
+colnames(fitfrank.par) <- c("itau","irho","mpl","ml")
+fitclayton.par <- matrix(nrow=12,ncol=4)
+colnames(fitclayton.par) <- c("itau","irho","mpl","ml")
 
-# 建立p-value表格
-pvalue.table <- matrix(nrow=12,ncol=3)
-colnames(pvalue.table) <- c("gumbel","frank","clayton")
 
+# 建立p-value表格(itau, irho, mpl, ml)
+pvalue.gumbel <- matrix(nrow=12,ncol=4)
+colnames(pvalue.gumbel) <- c("itau","irho","mpl","ml")
+pvalue.frank <- matrix(nrow=12,ncol=4)
+colnames(pvalue.frank) <- c("itau","irho","mpl","ml")
+pvalue.clayton <- matrix(nrow=12,ncol=4)
+colnames(pvalue.clayton) <- c("itau","irho","mpl","ml")
 
 
 pdf.new <- c() # 不同月份下，相同流量之PDF
@@ -152,81 +160,62 @@ for (m in month){
         par.table[dist,3] <- as.numeric(par1) 
         par.table[dist,4] <- as.numeric(par2)}
     }
-  
   }
-  #file <- paste0("E:/R_output/CHIA-YUANG/result/",m,"margin_par.csv", sep="")
-  #write.csv(par.table,file)
   #
-  # ------------------------ IFM method -------------------------
+  # ------------------------ copula parameter estimate & Goodness of fit test -------------------------
   #
-  var_a <- pobs(Q)
-  var_b <- pobs(S)
-  data.probs <- cbind(var_a, var_b)
-  #
-  # 建立copula
-  g3 <- gumbelCopula(1,use.indepC="FALSE")
-  f3 <- frankCopula(1)
-  c3 <- claytonCopula(1)
-  a3 <- amhCopula(1)
-  # 建立mvdc
-  gMvd2 <- mvdc(g3,c("lnorm","lnorm"),
-                param =list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]),
-                            list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
-  fMvd2 <- mvdc(f3,c("lnorm","lnorm"),
-                param =list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]),
-                            list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
-  cMvd2 <- mvdc(c3,c("lnorm","lnorm"),
-                param =list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]),
-                            list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
-  aMvd2 <- mvdc(a3,c("lnorm","lnorm"),
-                param =list(list(meanlog=par.table[2,1], sdlog=par.table[2,2]),
-                            list(meanlog=par.table[2,3], sdlog=par.table[2,4])))
-  # 估計 mvdc參數：margins的參數 和 copula的參數
-  mm <- apply(variable, 2, mean)
-  vv <- apply(variable, 2, var)
-  b1.0 <- c(mm[1]^2/vv[1], vv[1]/mm[1])
-  b2.0 <- c(mm[2]^2/vv[2], vv[2]/mm[2])
-  a.0 <- sin(cor(variable[, 1], variable[, 2], method = "kendall") * pi/2)
-  # 對數概似函數
-  loglik.marg <- function(b, x) sum(dlnorm(x, meanlog = b[1], sdlog = b[2], log = TRUE))
-  ctrl <- list(fnscale = -1)
-  b1hat <- optim(b1.0, fn = loglik.marg, x = variable[, 1], control = ctrl)$par
-  b2hat <- optim(b2.0, fn = loglik.marg, x = variable[, 2], control = ctrl)$par
-  udat <- cbind(plnorm(variable[, 1], meanlog = b1hat[1], sdlog = b1hat[2]),
-                plnorm(variable[, 2], meanlog = b2hat[1], sdlog = b2hat[2]))
-  if(m!=12){
-    fit.ifm.g <- fitCopula(gMvd2@copula, udat, start = a.0)
-    fit.ifm.f <- fitCopula(fMvd2@copula, udat, start = a.0)
-    fit.ifm.c <- fitCopula(cMvd2@copula, udat, start = a.0)}
-  if (m==12){ # 12月資料無法用claytoncopula
-    fit.ifm.g <- fitCopula(gMvd2@copula, udat, start = a.0)
-    fit.ifm.f <- fitCopula(fMvd2@copula, udat, start = a.0)}
-  #fit.ifm.a <- fitCopula(aMvd2@copula, udat, start = a.0)
-  #儲存參數到ifm.table
-  if(m!=12){
-    ifm.table[m,1] <- fit.ifm.g@estimate
-    ifm.table[m,2] <- fit.ifm.f@estimate
-    ifm.table[m,3] <- fit.ifm.c@estimate}
-  if (m==12){  #12月無法使用 claytoncopula
-    ifm.table[m,1] <- fit.ifm.g@estimate
-    ifm.table[m,2] <- fit.ifm.f@estimate}
-  #
-  # ------------------------ Goodness of fit test -----------------------------
-  #
-  if (gof=="y"){
-    print(paste0("第",m,"個月的適合度檢定"))
-    gfg <- gofCopula(gumbelCopula(fit.ifm.g@estimate, dim=2), pobs(variable),N = 2000
-                   ,method = "Sn", estim.method = "mpl", simulation = "pb")
-    gff <- gofCopula(frankCopula(fit.ifm.f@estimate, dim=2), pobs(variable),N = 2000
-                   ,method = "Sn", estim.method = "mpl", simulation = "pb")
-    gfc <- gofCopula(claytonCopula(fit.ifm.c@estimate, dim=2), pobs(variable),N = 1000
-                   ,method = "Sn", estim.method = "mpl", simulation = "pb", ties=TRUE
-                   ,optim.method = "BFGS")
-    #gfa <- gofCopula(amhCopula(dim=2), pobs(variable),N = 2000)
-    pvalue.table[m,1] <- gfg$p.value
-    pvalue.table[m,2] <- gff$p.value
-    pvalue.table[m,3] <- gfc$p.value
+  candidate.copula <- c("gumbel","frank","clayton")
+  for(dist in c(1:length(candidate.copula))){
+    print(candidate.copula[dist])
+    copula.char <- c(paste0(candidate.copula[dist],"Copula"))
+    copula.func <- get(copula.char)(2)
+    #Q與Qs的機率
+    var_a <- pobs(Q)
+    var_b <- pobs(S)
+    data.probs <- cbind(var_a, var_b)
+    #建立Mvdc
+    Mvd2 <- mvdc(copula.func,margin.dist,
+                  param =list(list(par.table[2,1], par.table[2,2]),
+                              list(par.table[2,3], par.table[2,4])))
+    # copula參數估計(12月無法使用clayton)
+    fit.tau <- fitCopula(Mvd2@copula, data.probs, method="itau")
+    fit.rho <- fitCopula(Mvd2@copula, data.probs, method="irho")
+    fit.mpl <- fitCopula(Mvd2@copula, data.probs, method="mpl")
+    fit.ml <- fitCopula(Mvd2@copula, data.probs, method="ml")
+    #儲存估計參數到表格中
+    get(paste0("fit",candidate.copula[dist],".par"))[m,1] <- fit.tau@estimate
+    ass(paste0("fit",candidate.copula[dist],".par"))[m,2] <- fit.rho@estimate
+    get(paste0("fit",candidate.copula[dist],".par"))[m,3] <- fit.mpl@estimate
+    get(paste0("fit",candidate.copula[dist],".par"))[m,4] <- fit.ml@estimate
     #
+    # Goodness of fit test 
+    #
+    if (gof=="y"){
+      print(paste0("第",m,"個月的適合度檢定"))
+      gof.tau <- gofCopula(get(copula.char)(fit.tau@estimate, dim=2), pobs(variable),N = 2000,
+                           method = "Sn", estim.method = "itau", simulation = "pb")
+      gof.rho <- gofCopula(get(copula.char)(fit.rho@estimate, dim=2), pobs(variable),N = 2000,
+                           method = "Sn", estim.method = "irho", simulation = "pb")
+      gof.mpl <- gofCopula(get(copula.char)(fit.mpl@estimate, dim=2), pobs(variable),N = 2000,
+                           method = "Sn", estim.method = "mpl", simulation = "pb")
+      gof.ml <- gofCopula(get(copula.char)(fit.ml@estimate, dim=2), pobs(variable),N = 2000,
+                          method = "Sn", estim.method = "ml", simulation = "pb",
+                          ties=TRUE,optim.method = "BFGS")
+      
+      # gof.rho <- gofCopula(frankCopula(fit.ifm.f@estimate, dim=2), pobs(variable),N = 2000
+      #                ,method = "Sn", estim.method = "mpl", simulation = "pb")
+      # g <- gofCopula(claytonCopula(fit.ifm.c@estimate, dim=2), pobs(variable),N = 1000
+      #                ,method = "Sn", estim.method = "mpl", simulation = "pb", ties=TRUE
+      #                ,optim.method = "BFGS")
+      #gfa <- gofCopula(amhCopula(dim=2), pobs(variable),N = 2000)
+      pvalue.gumbel[m,1] <- gof.tau$p.value
+      pvalue.gumbel[m,2] <- gof.rho$p.value
+      pvalue.gumbel[m,3] <- gof.mpl$p.value
+      pvalue.gumbel[m,4] <- gof.ml$p.value
+      #
+    }  
+    # 將copula參數放入copula.par表格中
+    copula.par[m,dist] <- fit.mpl@estimate
   }
   #
   # # ------------------------ copula function plotting --------------------------------
