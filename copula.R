@@ -1,6 +1,6 @@
 # Copula
 # 開始日期：2020/07/08
-# 完成日期：2020/10/06
+# 完成日期：2020/10/15
 # By 連育成
 # 待改進地方:邊際分布只能使用lnorm、copula只能使用gumbel
 
@@ -25,7 +25,7 @@ library(ggplot2) #繪圖用
 # ======================== 執行前請先設定以下參數 =========================
 #
 # 1. Read data from csv flie
-month<- c(6) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(5) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
 # Case(1)相同流量不同月份之情況
@@ -36,9 +36,9 @@ if (sameq == "y"){
 # Case(2)相同月份不同流量之情況
 samemonth <- c("y") # "n" or "y" (case(1),(2) 只能擇一執行)
 if (samemonth=="y"){
-  qn <-c(40.87,39.39,41.69,40.53)  # 輸入流量：seq(from=10.30, to=10.30, length.out=1);(起始值,最大值,總分組數)
+  qn <-c(5,10,15,20)  # 輸入流量：seq(from=10.30, to=10.30, length.out=1);(起始值,最大值,總分組數)
 }
-observation.qs <- c("y")
+observation.qs <- c("n")
 if (observation.qs =="y"){
   ob.qs <- c(12245.21,71363.72,36069.72,28545.90) # 輸入觀測輸砂量：
   rc.qs <- c(8901.20,8158.45,9328.86,8727.26) # 輸入率定曲線推估輸砂量：
@@ -46,12 +46,14 @@ if (observation.qs =="y"){
 }
 #
 # 2. 輸入邊際分布
-margin.dist <-c("lnorm","gumbel") # 請輸入邊際分布：
-# 3. 執行適合度檢定
-gof <- c("n") # "n" or "y"
-# 4. 輸出表格
+margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
+# 3. 輸入聯結函數
+copula <-c("gumbelCopula") # 請輸入聯結函數：
+# 4. 執行適合度檢定
+gof <- c("y") # "n" or "y"
+# 5. 輸出表格
 export <- c("n") # "n" or "y"
-# 5. copula function plotting
+# 6. copula function plotting
 cfp <- c("n") # "n" or "y"
 #
 # 6. PDF儲存路徑請至line 313、line 348 附近修改
@@ -64,23 +66,27 @@ q.samp <- matrix(nrow=100000,ncol=1) # qs的範圍決定q的數量
 #
 # ============================ 主程式 ==================================
 #
-# 建立copula參數估計表格(itau, irho, mpl, ml)
+# 建立copula參數估計表格(參數估計方法：itau, irho, mpl, ml)
 fitgumbel.par <- matrix(nrow=12,ncol=4)
 colnames(fitgumbel.par) <- c("itau","irho","mpl","ml")
 fitfrank.par <- matrix(nrow=12,ncol=4)
 colnames(fitfrank.par) <- c("itau","irho","mpl","ml")
 fitclayton.par <- matrix(nrow=12,ncol=4)
 colnames(fitclayton.par) <- c("itau","irho","mpl","ml")
+#合成一個copula parameter的總表格
+fitcopula.par <- cbind(fitgumbel.par,fitfrank.par,fitclayton.par)
+fitcopula.par <- data.frame(fitcopula.par,parameter=0)
 
-
-# 建立p-value表格(itau, irho, mpl, ml)
+# 建立p-value表格(參數估計方法：itau, irho, mpl, ml)
 pvalue.gumbel <- matrix(nrow=12,ncol=4)
 colnames(pvalue.gumbel) <- c("itau","irho","mpl","ml")
 pvalue.frank <- matrix(nrow=12,ncol=4)
 colnames(pvalue.frank) <- c("itau","irho","mpl","ml")
 pvalue.clayton <- matrix(nrow=12,ncol=4)
 colnames(pvalue.clayton) <- c("itau","irho","mpl","ml")
-
+# 合成一個pvalue總表格
+gof.pvalue <- cbind(pvalue.gumbel,pvalue.frank,pvalue.clayton)
+gof.pvalue <- data.frame(gof.pvalue,resultcopula=0)
 
 pdf.new <- c() # 不同月份下，相同流量之PDF
 j <- 0 # 計算月份次數
@@ -165,8 +171,9 @@ for (m in month){
   # ------------------------ copula parameter estimate & Goodness of fit test -------------------------
   #
   candidate.copula <- c("gumbel","frank","clayton")
+
   for(dist in c(1:length(candidate.copula))){
-    print(candidate.copula[dist])
+    print(paste0(candidate.copula[dist],"copula"))
     copula.char <- c(paste0(candidate.copula[dist],"Copula"))
     copula.func <- get(copula.char)(2)
     #Q與Qs的機率
@@ -177,46 +184,70 @@ for (m in month){
     Mvd2 <- mvdc(copula.func,margin.dist,
                   param =list(list(par.table[2,1], par.table[2,2]),
                               list(par.table[2,3], par.table[2,4])))
-    # copula參數估計(12月無法使用clayton)
+    # copula參數估計
     fit.tau <- fitCopula(Mvd2@copula, data.probs, method="itau")
     fit.rho <- fitCopula(Mvd2@copula, data.probs, method="irho")
     fit.mpl <- fitCopula(Mvd2@copula, data.probs, method="mpl")
     fit.ml <- fitCopula(Mvd2@copula, data.probs, method="ml")
     #儲存估計參數到表格中
-    get(paste0("fit",candidate.copula[dist],".par"))[m,1] <- fit.tau@estimate
-    ass(paste0("fit",candidate.copula[dist],".par"))[m,2] <- fit.rho@estimate
-    get(paste0("fit",candidate.copula[dist],".par"))[m,3] <- fit.mpl@estimate
-    get(paste0("fit",candidate.copula[dist],".par"))[m,4] <- fit.ml@estimate
+    if(dist==1){ #gumbelcopula參數估計
+      fitcopula.par[m,1] <- fit.tau@estimate
+      fitcopula.par[m,2] <- fit.rho@estimate
+      fitcopula.par[m,3] <- fit.mpl@estimate
+      fitcopula.par[m,4] <- fit.ml@estimate
+    }
+    if(dist==2){ # frankcopula參數估計
+      fitcopula.par[m,5] <- fit.tau@estimate
+      fitcopula.par[m,6] <- fit.rho@estimate
+      fitcopula.par[m,7] <- fit.mpl@estimate
+      fitcopula.par[m,8] <- fit.ml@estimate
+    }
+    if(dist==3){
+      fitcopula.par[m,9] <- fit.tau@estimate
+      fitcopula.par[m,10] <- fit.rho@estimate
+      fitcopula.par[m,11] <- fit.mpl@estimate
+      fitcopula.par[m,12] <- fit.ml@estimate
+    }
     #
     # Goodness of fit test 
     #
     if (gof=="y"){
       print(paste0("第",m,"個月的適合度檢定"))
       gof.tau <- gofCopula(get(copula.char)(fit.tau@estimate, dim=2), pobs(variable),N = 2000,
-                           method = "Sn", estim.method = "itau", simulation = "pb")
+                           method = "Sn", estim.method = "itau", simulation = "pb",ties=TRUE)
       gof.rho <- gofCopula(get(copula.char)(fit.rho@estimate, dim=2), pobs(variable),N = 2000,
-                           method = "Sn", estim.method = "irho", simulation = "pb")
+                           method = "Sn", estim.method = "irho", simulation = "pb",ties=TRUE)
       gof.mpl <- gofCopula(get(copula.char)(fit.mpl@estimate, dim=2), pobs(variable),N = 2000,
-                           method = "Sn", estim.method = "mpl", simulation = "pb")
+                           method = "Sn", estim.method = "mpl", simulation = "pb",ties=TRUE,
+                           optim.method = "BFGS")
       gof.ml <- gofCopula(get(copula.char)(fit.ml@estimate, dim=2), pobs(variable),N = 2000,
-                          method = "Sn", estim.method = "ml", simulation = "pb",
-                          ties=TRUE,optim.method = "BFGS")
-      
-      # gof.rho <- gofCopula(frankCopula(fit.ifm.f@estimate, dim=2), pobs(variable),N = 2000
-      #                ,method = "Sn", estim.method = "mpl", simulation = "pb")
-      # g <- gofCopula(claytonCopula(fit.ifm.c@estimate, dim=2), pobs(variable),N = 1000
-      #                ,method = "Sn", estim.method = "mpl", simulation = "pb", ties=TRUE
-      #                ,optim.method = "BFGS")
-      #gfa <- gofCopula(amhCopula(dim=2), pobs(variable),N = 2000)
-      pvalue.gumbel[m,1] <- gof.tau$p.value
-      pvalue.gumbel[m,2] <- gof.rho$p.value
-      pvalue.gumbel[m,3] <- gof.mpl$p.value
-      pvalue.gumbel[m,4] <- gof.ml$p.value
-      #
+                          method = "Sn", estim.method = "ml", simulation = "pb",ties=TRUE,
+                          optim.method = "BFGS")
+      if(copula.char=="gumbelCopula"){
+        gof.pvalue[m,1] <- gof.tau$p.value
+        gof.pvalue[m,2] <- gof.rho$p.value
+        gof.pvalue[m,3] <- gof.mpl$p.value
+        gof.pvalue[m,4] <- gof.ml$p.value
+      }
+      if(copula.char=="frankCopula"){
+        gof.pvalue[m,5] <- gof.tau$p.value
+        gof.pvalue[m,6] <- gof.rho$p.value
+        gof.pvalue[m,7] <- gof.mpl$p.value
+        gof.pvalue[m,8] <- gof.ml$p.value
+      }
+      if(copula.char=="claytonCopula"){
+        gof.pvalue[m,9] <- gof.tau$p.value
+        gof.pvalue[m,10] <- gof.rho$p.value
+        gof.pvalue[m,11] <- gof.mpl$p.value
+        gof.pvalue[m,12] <- gof.ml$p.value
+      }
     }  
     # 將copula參數放入copula.par表格中
-    copula.par[m,dist] <- fit.mpl@estimate
+    #copula.par[m,dist] <- fit.mpl@estimate
   }
+  gof.pvalue[m,13] <- floor(which.max(gof.pvalue[m,])%/%(4+.1)+1) #每四個為一組
+  fitcopula.par[m,13] <- fitcopula.par[m,which.max(gof.pvalue[m,1:12])]
+
   #
   # # ------------------------ copula function plotting --------------------------------
   # #
@@ -224,7 +255,7 @@ for (m in month){
   ## Generate the gunbel copula and sample some observations
   #
   if (cfp == "y"){
-    mycopula <- gumbelCopula(param = fit.ifm.g@estimate, dim = 2)
+    mycopula <- get(paste0(candidate.copula[gof.pvalue[m,13]],"Copula"))(param = fitcopula.par[m,13], dim = 2)
     u <- rCopula(2000, mycopula)
     # Compute the density
     pdf_ <- dCopula(u, mycopula)
@@ -268,9 +299,9 @@ for (m in month){
   #
   #gumbel copula parameter
   print("開始建立conditional copula distribution function")
-  gum.cop <- gumbelCopula(param=fit.ifm.g@estimate)
+  mycopula <- get(paste0(candidate.copula[gof.pvalue[m,13]],"Copula"))(param = fitcopula.par[m,13])
   # 建立雙變數分布函數
-  Mvdc <- mvdc(gum.cop, margin.dist,
+  Mvdc <- mvdc(mycopula, margin.dist,
                param =list(list(par.table[2,1], par.table[2,2]),
                            list(par.table[2,3], par.table[2,4])))
   v <- rMvdc(20000,Mvdc)
@@ -310,7 +341,7 @@ for (m in month){
       q.samp[,1] <- q
       data.samp <- cbind(q.samp,qs)
       mvdc.density <- dMvdc(data.samp, Mvdc, log=FALSE)
-      q.pdf <- dlnorm(qn,meanlog=par.table[2,1], sdlog=par.table[2,2])
+      q.pdf <- get(paste0("d",margin.dist[1]))(qn,par.table[2,1], par.table[2,2])
       condition.pdf <- mvdc.density/q.pdf
       q <- paste0(q,"cms")
       mon <- paste0(m,"月")
@@ -345,7 +376,7 @@ for (m in month){
       q.samp[,1] <- q
       data.samp <- cbind(q.samp,qs)
       mvdc.density <- dMvdc(data.samp, Mvdc, log=FALSE)
-      q.pdf <- dlnorm(qn,meanlog=par.table[2,1], sdlog=par.table[2,2])
+      q.pdf <- get(paste0("d",margin.dist[1]))(qn,par.table[2,1], par.table[2,2])
       condition.pdf <- mvdc.density/q.pdf[q.group]
       q <- paste0(q,"cms")
       if (observation.qs=="y"){
@@ -366,8 +397,9 @@ for (m in month){
     sameMonth <- ggplot() +
       geom_line(data=pdf.new,aes(x = qs, y = condition.pdf, color = q),size=1.3)+  # 畫線圖
       #geom_line(data=qs.obser,aes(x=qs.obser[1:2,1],y=qs.obser[1:2,2],color="blue"),size=1.3)+
+      if(observation.qs=="y"){
       geom_vline(data=qs.table,aes(xintercept=Qs),color="blue",size=1.3)+ # 觀測輸砂量
-      geom_vline(aes(xintercept=rc.qs),color="red",size=1.3)+ # 觀測輸砂量
+      geom_vline(aes(xintercept=rc.qs),color="red",size=1.3)+} # 觀測輸砂量
       #geom_vline(aes(xintercept=56.78), colour="green4",size=1.3)+ # 率定曲線的推估輸砂量
       labs(x="輸砂量Qs (公噸)",y="PDF") + #座標軸名稱
       scale_color_discrete(name="流量") + #圖例名稱
