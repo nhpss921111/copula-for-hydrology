@@ -1,6 +1,6 @@
 # 以聯結函數建立流量及輸砂量之雙變數機率分布模式
 # 開始日期：2020/07/08
-# 完成日期：2020/10/16
+# 完成日期：2020/10/19
 # By 連育成
 # ----------------- Setting --------------------- 
 # 邊際分布：norm, lnorm, gumbel, weibull, gamma
@@ -62,11 +62,11 @@ export <- c("n") # "n" or "y"
 # 6. copula function plotting
 cfp <- c("n") # "n" or "y"
 #
-# 6. PDF儲存路徑請至line 313、line 348 附近修改
+# 7. PDF儲存路徑請至line 313、line 348 附近修改
 #
-# 7. PDF之點位資料存在pdf.new裡面
+# 8. PDF之點位資料存在pdf.new裡面
 #
-# 8.# 建立Q表格: q.samp
+# 9.# 建立Q表格: q.samp
 qs <- seq(from=0.001, to=1000, by=1) # 調整Qs範圍
 q.samp <- matrix(nrow=1000,ncol=1) # qs的範圍決定q的數量
 #
@@ -136,7 +136,7 @@ for (m in month){
   rownames(par.table) <- c(candidate)
   colnames(par.table) <- c("par1","par2","par1","par2") 
   #
-  for(i in 1:dim(variable)[2]){
+  for(i in 1:dim(variable)[2]){ # Q ,QS
     var <- variable[,i]
     print(paste0("第",i,"個變數：",colnames(variable)[i])) #顯示第幾個及變數名稱
     # By Maximun Likelihood Estimate Method
@@ -208,7 +208,7 @@ for (m in month){
       fitcopula.par[m,7] <- fit.mpl@estimate
       fitcopula.par[m,8] <- fit.ml@estimate
     }
-    if(dist==3){
+    if(dist==3){ # claytoncopula參數估計
       fitcopula.par[m,9] <- fit.tau@estimate
       fitcopula.par[m,10] <- fit.rho@estimate
       fitcopula.par[m,11] <- fit.mpl@estimate
@@ -251,15 +251,14 @@ for (m in month){
       }
     }  
   }
-  # 選擇pvalue最大的值，並找出是哪個聯結函數
+  # 選擇pvalue最大的值，並找出是哪個聯結函數(每個聯結函數使用四種參數估計法)
   gof.pvalue[m,13] <- floor(which.max(gof.pvalue[m,])%/%(4+.1)+1) #每四個為一組
   # 最佳連結函數的參數
   fitcopula.par[m,13] <- fitcopula.par[m,which.max(gof.pvalue[m,1:12])]
   #
-  # # ------------------------ copula function plotting --------------------------------
-  # #
-  # 尚未寫選擇出圖之copula的迴圈!!!
-  ## Generate the gunbel copula and sample some observations
+  # ------------------------ copula function plotting --------------------------------
+  # 
+  # Generate the gunbel copula and sample some observations
   #
   if (cfp == "y"){
     mycopula <- get(paste0(candidate.copula[gof.pvalue[m,13]],"Copula"))(param = fitcopula.par[m,13], dim = 2)
@@ -286,7 +285,7 @@ for (m in month){
                    paramMargins=list(list(par.table[margin.num[1],1], par.table[margin.num[1],2]),
                                      list(par.table[margin.num[2],3], par.table[margin.num[2],4])))
     # Generate random sample observations from the multivariate distribution
-    v <- rMvdc(5000, my_dist)
+    v <- rMvdc(5000, my_dist) # 隨機生成5000點的模型
     # Compute the density
     pdf_mvd <- dMvdc(v, my_dist)
     # Compute the CDF
@@ -400,13 +399,10 @@ for (m in month){
       png(paste0(m,"月流量之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
       sameMonth <- ggplot() +
         geom_line(data=pdf.new,aes(x = qs, y = condition.pdf, color = q),size=1.3)+  # 畫線圖
-        #geom_line(data=qs.obser,aes(x=qs.obser[1:2,1],y=qs.obser[1:2,2],color="blue"),size=1.3)+
         geom_vline(data=qs.table,aes(xintercept=Qs),color="blue",size=1.3)+ # 觀測輸砂量
-        geom_vline(aes(xintercept=rc.qs),color="red",size=1.3)+ # 觀測輸砂量
-        #geom_vline(aes(xintercept=56.78), colour="green4",size=1.3)+ # 率定曲線的推估輸砂量
+        geom_vline(aes(xintercept=rc.qs),color="red",size=1.3)+ # 率定曲線的推估輸砂量
         labs(x="輸砂量Qs (公噸)",y="PDF") + #座標軸名稱
         scale_color_discrete(name="流量") + #圖例名稱
-        #scale_color_discrete(name="輸砂量") + #圖例名稱
         theme_bw() + # 白底
         theme(panel.grid.major = element_blank()) + # 隱藏主要格線
         theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
