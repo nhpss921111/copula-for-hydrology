@@ -30,7 +30,7 @@ library(scatterplot3d) #畫3D圖
 # ============================= 執行前請先設定以下參數 =================================
 #
 # 1. Read data from csv flie
-month<- c(8) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(5) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
 # Case(1)相同流量不同月份之情況
@@ -54,7 +54,7 @@ if (observation.qs =="y"){
 margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
 margin.num <- c(2,2) # 邊際分布代號(norm=1, lnorm=2, gumbel=3, weibull=4, gamma=5)
 # 3. 輸入聯結函數
-copula <-c("gumbelCopula") # 請輸入聯結函數：
+ copula <-c("gumbelCopula") # 請輸入聯結函數：
 # 4. 執行適合度檢定
 gof <- c("y") # "n" or "y"
 # 5. 輸出表格
@@ -67,32 +67,54 @@ cfp <- c("n") # "n" or "y"
 # 8. PDF之點位資料存在pdf.new裡面
 #
 # 9.# 建立Q表格: q.samp
-qs <- seq(from=0.001, to=1000, by=1) # 調整Qs範圍
+qs <- seq(from=1, to=1000, by=1) # 調整Qs範圍
 q.samp <- matrix(nrow=1000,ncol=1) # qs的範圍決定q的數量
 #
 # ===================================== 主程式 ===========================================
 #
+# 建立margin參數估計表格(參數估計方法：mle)(候選分布：norm, lnorm, gumbel, weibull, gamma)
+fitmargin.par <- matrix(nrow=12,ncol=20)
+colnames(fitmargin.par) <- c("norm.Q.par1","norm.Q.par2","norm.Qs.par1","norm.Qs.par2",
+                             "lnorm.Q.par1","lnorm.Q.par2","lnorm.Qs.par1","lnorm.Qs.par2",
+                             "gumbel.Q.par1","gumbel.Q.par2","gumbel.Qs.par1","gumbel.Qs.par2",
+                             "weibull.Q.par1","weibull.Q.par2","weibull.Qs.par1","weibull.Qs.par2",
+                             "gamma.Q.par1","gamma.Q.par2","gamma.Qs.par1","gamma.Qs.par2")
+# 新增最後一行放選擇分布的參數值(預設值為0)
+# fitmargin.par <- data.frame(fitmargin.par, Q.par1=0, Q.par2=0, Qs.par1=0, Qs.par2=0)
+# # 建立margin的K-S檢定
+# margin.ks <- matrix(nrow=12,ncol=10)
+# colnames(margin.ks) <- c("norm.Q.ks","norm.Qs.ks",
+#                          "lnorm.Q.ks","lnorm.Qs.ks",
+#                          "gumbel.Q.ks","gumbel.Qs.ks",
+#                          "weibull.Q.ks","weibull.Qs.ks",
+#                          "gamma.Q.ks","gamma.Qs.ks")
+# 新增最後一行放選擇分布的參數值(預設值為0)
+# margin.ks <- data.frame(margin.ks, Q.par1=0, Q.par2=0, Qs.par1=0, Qs.par2=0)
+# # 建立margin的AIC
+# margin.aic <- matrix(nrow=12,ncol=10)
+# colnames(margin.aic) <- c("norm.Q.aic","norm.Qs.aic",
+#                          "lnorm.Q.aic","lnorm.Qs.aic",
+#                          "gumbel.Q.aic","gumbel.Qs.aic",
+#                          "weibull.Q.aic","weibull.Qs.aic",
+#                          "gamma.Q.aic","gamma.Qs.aic")
+# # 新增最後一行放選擇分布的參數值(預設值為0)
+# margin.aic <- data.frame(margin.aic, choice.Q.dist=0, choice.Qs.dist=0)
+
 # 建立copula參數估計表格(參數估計方法：itau, irho, mpl, ml)
-fitgumbel.par <- matrix(nrow=12,ncol=4)
-colnames(fitgumbel.par) <- c("itau","irho","mpl","ml")
-fitfrank.par <- matrix(nrow=12,ncol=4)
-colnames(fitfrank.par) <- c("itau","irho","mpl","ml")
-fitclayton.par <- matrix(nrow=12,ncol=4)
-colnames(fitclayton.par) <- c("itau","irho","mpl","ml")
-#合成一個copula parameter的總表格
-fitcopula.par <- cbind(fitgumbel.par,fitfrank.par,fitclayton.par)
-fitcopula.par <- data.frame(fitcopula.par,parameter=0)
+fitcopula.par <- matrix(nrow=12,ncol=12)
+colnames(fitcopula.par) <- c("gumbel.itau","gumbel.irho","gumbel.mpl","gumbel.ml",
+                             "frank.itau","frank.irho","frank.mpl","frank.ml",
+                             "clayton.itau","clayton.irho","clayton.mpl","clayton.ml")
+# 新增最後一行放選擇的參數值(預設值為0)
+fitcopula.par <- data.frame(fitcopula.par, copula.parameter=0)
 
 # 建立p-value表格(參數估計方法：itau, irho, mpl, ml)
-pvalue.gumbel <- matrix(nrow=12,ncol=4)
-colnames(pvalue.gumbel) <- c("itau","irho","mpl","ml")
-pvalue.frank <- matrix(nrow=12,ncol=4)
-colnames(pvalue.frank) <- c("itau","irho","mpl","ml")
-pvalue.clayton <- matrix(nrow=12,ncol=4)
-colnames(pvalue.clayton) <- c("itau","irho","mpl","ml")
-# 合成一個pvalue總表格
-gof.pvalue <- cbind(pvalue.gumbel,pvalue.frank,pvalue.clayton)
-gof.pvalue <- data.frame(gof.pvalue,resultcopula=0)
+gof.pvalue <- matrix(nrow=12,ncol=12)
+colnames(gof.pvalue) <- c("gumbel.itau","gumbel.irho","gumbel.mpl","gumbel.ml",
+                          "frank.itau","frank.irho","frank.mpl","frank.ml",
+                          "clayton.itau","clayton.irho","clayton.mpl","clayton.ml")
+# 新增最後一行放選擇的聯結函數(預設值為0)
+gof.pvalue <- data.frame(gof.pvalue, resultcopula=0)
 
 pdf.new <- c() # 不同月份下，相同流量之PDF
 j <- 0 # 計算月份次數
@@ -102,7 +124,7 @@ j <- 0 # 計算月份次數
 # 主要執行迴圈
 for (m in month){
   j <- j + 1 # 計算月份次數
-  setwd("E:/R_reading/CHIA-YUANG")
+  setwd("E:/R_reading/NEI-MAO-PU")
   data <- read.csv(file.path(getwd(),input[j])) 
   data <- data[,-1]
   attach(data)
@@ -132,16 +154,26 @@ for (m in month){
   #
   variable <- cbind(Q,S)
   # 邊際分布參數表格
-  par.table <- matrix(nrow=length(candidate),ncol=2*2)
-  rownames(par.table) <- c(candidate)
-  colnames(par.table) <- c("par1","par2","par1","par2") 
+  margin.par <- matrix(nrow=length(candidate),ncol=2*2)
+  rownames(margin.par) <- c(candidate)
+  colnames(margin.par) <- c("par1","par2","par1","par2") 
+  # margin.ks 放置p-value
+  margin.ks <- matrix(nrow=length(candidate)+1,ncol=dim(variable)[2]) # +1 是為了要放最佳分布的欄位
+  rownames(margin.ks) <- c(candidate,"good dist")
+  colnames(margin.ks) <- c(colnames(variable))
+  # margin.aic  放置AIC value
+  margin.aic <- matrix(nrow=length(candidate)+1,ncol=dim(variable)[2]) # +1 是為了要放最小AIC的欄位
+  rownames(margin.aic) <- c(candidate,"good dist")
+  colnames(margin.aic) <- c(colnames(variable))
+  # 邊際分布編號
+  margin.num <- matrix(ncol=2)
   #
   for(i in 1:dim(variable)[2]){ # Q ,QS
     var <- variable[,i]
     print(paste0("第",i,"個變數：",colnames(variable)[i])) #顯示第幾個及變數名稱
     # By Maximun Likelihood Estimate Method
     for(dist in c(1:length(candidate))){
-      # -------------------------- parameter estimate ----------------------------------
+    # -------------------------- parameter estimate ----------------------------------
       print(candidate[dist])
       dist.char <- c(candidate[dist],
                      paste0("d", candidate[dist]), 
@@ -165,12 +197,12 @@ for (m in month){
       par2 <- md$estimate[2] #參數2
       print(c(par1, par2))
       # parameter 擺放設定
-      if(i==1){ # Q
-        par.table[dist,1] <- as.numeric(par1) 
-        par.table[dist,2] <- as.numeric(par2)}
-      if(i==2){ # S
-        par.table[dist,3] <- as.numeric(par1) 
-        par.table[dist,4] <- as.numeric(par2)}
+      if(i==1){
+        margin.par[dist,1] <- as.numeric(par1) 
+        margin.par[dist,2] <- as.numeric(par2)}
+      if(i==2){
+        margin.par[dist,3] <- as.numeric(par1) 
+        margin.par[dist,4] <- as.numeric(par2)}
     }
   }
   #
@@ -188,8 +220,8 @@ for (m in month){
     data.probs <- cbind(var_a, var_b)
     #建立Mvdc
     Mvd2 <- mvdc(copula.func,margin.dist,
-                  param =list(list(par.table[margin.num[1],1], par.table[margin.num[1],2]),
-                              list(par.table[margin.num[2],3], par.table[margin.num[2],4])))
+                  param =list(list(margin.par[margin.num[1],1], margin.par[margin.num[1],2]),
+                              list(margin.par[margin.num[2],3], margin.par[margin.num[2],4])))
     # copula參數估計
     fit.tau <- fitCopula(Mvd2@copula, data.probs, method="itau")
     fit.rho <- fitCopula(Mvd2@copula, data.probs, method="irho")
@@ -249,7 +281,7 @@ for (m in month){
         gof.pvalue[m,11] <- gof.mpl$p.value
         gof.pvalue[m,12] <- gof.ml$p.value
       }
-    }  
+    }
   }
   # 選擇pvalue最大的值，並找出是哪個聯結函數(每個聯結函數使用四種參數估計法)
   gof.pvalue[m,13] <- floor(which.max(gof.pvalue[m,])%/%(4+.1)+1) #每四個為一組
@@ -282,8 +314,8 @@ for (m in month){
   
     # Build the bivariate distribution
     my_dist <- mvdc(mycopula, margin.dist,
-                   paramMargins=list(list(par.table[margin.num[1],1], par.table[margin.num[1],2]),
-                                     list(par.table[margin.num[2],3], par.table[margin.num[2],4])))
+                   paramMargins=list(list(margin.par[margin.num[1],1], margin.par[margin.num[1],2]),
+                                     list(margin.par[margin.num[2],3], margin.par[margin.num[2],4])))
     # Generate random sample observations from the multivariate distribution
     v <- rMvdc(5000, my_dist) # 隨機生成5000點的模型
     # Compute the density
@@ -308,8 +340,8 @@ for (m in month){
   mycopula <- get(paste0(candidate.copula[gof.pvalue[m,13]],"Copula"))(param = fitcopula.par[m,13])
   # 建立雙變數分布函數
   Mvdc <- mvdc(mycopula, margin.dist,
-               param =list(list(par.table[margin.num[1],1], par.table[margin.num[1],2]),
-                           list(par.table[margin.num[2],3], par.table[margin.num[2],4])))
+               param =list(list(margin.par[margin.num[1],1], margin.par[margin.num[1],2]),
+                           list(margin.par[margin.num[2],3], margin.par[margin.num[2],4])))
   v <- rMvdc(20000,Mvdc)
   plot(sort(v[,1]),sort(v[,2]))
   pdf_mvd <- dMvdc(v, Mvdc)
@@ -330,7 +362,7 @@ for (m in month){
       q.samp[,1] <- q
       data.samp <- cbind(q.samp,qs)
       mvdc.density <- dMvdc(data.samp, Mvdc, log=FALSE)
-      q.pdf <- get(paste0("d",margin.dist[1]))(qn,par.table[margin.num[1],1], par.table[margin.num[1],2])
+      q.pdf <- get(paste0("d",margin.dist[1]))(qn,margin.par[margin.num[1],1], margin.par[margin.num[1],2])
       condition.pdf <- mvdc.density/q.pdf
       q <- paste0(q,"cms")
       mon <- paste0(m,"月")
@@ -365,7 +397,7 @@ for (m in month){
       q.samp[,1] <- q
       data.samp <- cbind(q.samp,qs)
       mvdc.density <- dMvdc(data.samp, Mvdc, log=FALSE)
-      q.pdf <- get(paste0("d",margin.dist[1]))(qn,par.table[margin.num[1],1], par.table[margin.num[1],2])
+      q.pdf <- get(paste0("d",margin.dist[1]))(qn,margin.par[margin.num[1],1], margin.par[margin.num[1],2])
       condition.pdf <- mvdc.density/q.pdf[q.group]
       q <- paste0(q,"cms")
       if (observation.qs=="y"){
