@@ -30,7 +30,7 @@ library(scatterplot3d) #畫3D圖
 # ============================= 執行前請先設定以下參數 =================================
 #
 # 1. Read data from csv flie
-month<- c(5) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(6) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
 # Case(1)相同流量不同月份之情況
@@ -124,7 +124,7 @@ j <- 0 # 計算月份次數
 # 主要執行迴圈
 for (m in month){
   j <- j + 1 # 計算月份次數
-  setwd("E:/R_reading/NEI-MAO-PU")
+  setwd("E:/R_reading/CHIA-YUANG")
   data <- read.csv(file.path(getwd(),input[j])) 
   data <- data[,-1]
   attach(data)
@@ -166,7 +166,7 @@ for (m in month){
   rownames(margin.aic) <- c(candidate,"good dist")
   colnames(margin.aic) <- c(colnames(variable))
   # 邊際分布編號
-  margin.num <- matrix(ncol=2)
+  #margin.num <- matrix(ncol=2)
   #
   for(i in 1:dim(variable)[2]){ # Q ,QS
     var <- variable[,i]
@@ -347,7 +347,7 @@ for (m in month){
   pdf_mvd <- dMvdc(v, Mvdc)
   # Compute the CDF
   cdf_mvd <- pMvdc(v, Mvdc)
-  contour(Mvdc,pMvdc,xlim = c(0, 80), ylim=c(0, 2000),main=paste0(m,"月雙變數機率分布(CDF)"),
+  contour(Mvdc,pMvdc,xlim = c(0, 100), ylim=c(0, 1500),main=paste0(m,"月雙變數機率分布(CDF)"),
           xlab="流量Q (cms)",ylab="輸砂量Qs (公噸)",labcex = 1.2,lwd=1.5,drawlabels = TRUE)
   scatterplot3d(x=v[,1], y=v[,2],z=pdf_mvd,color="red", main=paste0(m,"月的PDF"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
   scatterplot3d(x=v[,1], y=v[,2],z=cdf_mvd,color="red", main=paste0(m,"月雙變數機率分布(CDF)"), xlab = "流量Q (cms)", ylab="輸砂量Qs (公噸)", zlab="累積機率",pch=".")
