@@ -1,6 +1,6 @@
 # 以聯結函數建立流量及輸砂量之雙變數機率分布模式
 # 開始日期：2020/07/08
-# 完成日期：2020/10/21test
+# 完成日期：2020/10/27
 # By 連育成
 # ----------------- Setting --------------------- 
 # 邊際分布：norm, lnorm, gumbel, weibull, gamma
@@ -29,17 +29,19 @@ library(scatterplot3d) #畫3D圖
 #
 # ============================= 執行前請先設定以下參數 =================================
 #
+# 選擇測站(要到setwd的路徑更改資料夾名稱)
+#
 # 1. Read data from csv flie
-month<- c(6) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(6,7,11,12) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
 # Case(1)相同流量不同月份之情況
-sameq <- c("n")  # "n" or "y" (case(1),(2) 只能擇一執行)
+sameq <- c("y")  # "n" or "y" (case(1),(2) 只能擇一執行)
 if (sameq == "y"){
-  qn <- c(20) # 輸入流量：(只能輸入一個值)
+  qn <- c(5) # 輸入流量：(只能輸入一個值)
 }
 # Case(2)相同月份不同流量之情況
-samemonth <- c("y") # "n" or "y" (case(1),(2) 只能擇一執行)
+samemonth <- c("n") # "n" or "y" (case(1),(2) 只能擇一執行)
 if (samemonth=="y"){
   qn <-c(5,10,15,20)  # 輸入流量：seq(from=10.30, to=10.30, length.out=1);(起始值,最大值,總分組數)
 }
@@ -67,8 +69,8 @@ cfp <- c("n") # "n" or "y"
 # 8. PDF之點位資料存在pdf.new裡面
 #
 # 9.# 建立Q表格: q.samp
-qs <- seq(from=1, to=1000, by=1) # 調整Qs範圍
-q.samp <- matrix(nrow=1000,ncol=1) # qs的範圍決定q的數量
+qs <- seq(from=.001, to=200, by=1) # 調整Qs範圍
+q.samp <- matrix(nrow=200,ncol=1) # qs的範圍決定q的數量
 #
 # ===================================== 主程式 ===========================================
 #
@@ -124,7 +126,7 @@ j <- 0 # 計算月份次數
 # 主要執行迴圈
 for (m in month){
   j <- j + 1 # 計算月份次數
-  setwd("E:/R_reading/CHIA-YUANG")
+  setwd("F:/R_reading/CHIA-YUANG")
   data <- read.csv(file.path(getwd(),input[j])) 
   data <- data[,-1]
   attach(data)
@@ -370,7 +372,7 @@ for (m in month){
       pdf.new <- rbind(pdf.new, pdf)
     }
     # PDF出圖
-    setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
+    setwd("F:/R_output/CHIA-YUANG/result/PDF") # 請修改儲存路徑：
     png(paste0("流量",q,"之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
     sameQ <- ggplot(pdf.new) +
       geom_line(aes(x = qs, y = condition.pdf, color = mon),size=1.3) + # 畫線圖
@@ -413,7 +415,7 @@ for (m in month){
       q.group <- q.group + 1
     }
     # PDF出圖
-    setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
+    setwd("F:/R_output/CHIA-YUANG/result/PDF") # 請修改儲存路徑：
     png(paste0(m,"月流量之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
     sameMonth <- ggplot() +
       geom_line(data=pdf.new,aes(x = qs, y = condition.pdf, color = q),size=1.3)+  # 畫線圖
@@ -427,7 +429,7 @@ for (m in month){
     print(sameMonth)
     dev.off()
     if(observation.qs=="y"){
-      setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
+      setwd("F:/R_output/CHIA-YUANG/result/PDF") # 請修改儲存路徑：
       png(paste0(m,"月流量之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
       sameMonth <- ggplot() +
         geom_line(data=pdf.new,aes(x = qs, y = condition.pdf, color = q),size=1.3)+  # 畫線圖
@@ -454,3 +456,4 @@ if (export=="y"){
   file <- paste("E:/R_output/CHIA-YUANG/result/copula_gof_pvalue.csv", sep="")
   write.csv(pvalue.table,file)
 }
+
