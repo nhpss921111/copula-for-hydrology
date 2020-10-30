@@ -10,7 +10,7 @@
 # 聯結函數估計方法：itau, irho, mpl, ml
 # 聯結函數適合度檢定： method=Sn, optim=BFGS
 # -----------------------------------------------
-rm(list=ls())
+# rm(list=ls())
 library(stats) # 機率分布 
 library(actuar) # 機率分布 
 library(dplyr) # 資料整理 
@@ -32,16 +32,16 @@ library(scatterplot3d) #畫3D圖
 # 選擇測站(要到setwd的路徑更改資料夾名稱)
 #
 # 1. Read data from csv flie
-month<- c(6,7,11,12) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(12) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
 # Case(1)相同流量不同月份之情況
-sameq <- c("y")  # "n" or "y" (case(1),(2) 只能擇一執行)
+sameq <- c("n")  # "n" or "y" (case(1),(2) 只能擇一執行)
 if (sameq == "y"){
-  qn <- c(5) # 輸入流量：(只能輸入一個值)
+  qn <- c(20) # 輸入流量：(只能輸入一個值)
 }
 # Case(2)相同月份不同流量之情況
-samemonth <- c("n") # "n" or "y" (case(1),(2) 只能擇一執行)
+samemonth <- c("y") # "n" or "y" (case(1),(2) 只能擇一執行)
 if (samemonth=="y"){
   qn <-c(5,10,15,20)  # 輸入流量：seq(from=10.30, to=10.30, length.out=1);(起始值,最大值,總分組數)
 }
@@ -57,7 +57,7 @@ margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
 margin.num <- c(2,2) # 邊際分布代號(norm=1, lnorm=2, gumbel=3, weibull=4, gamma=5)
 # 3. 輸入聯結函數
  copula <-c("gumbelCopula") # 請輸入聯結函數：
-# 4. 執行適合度檢定
+# 4. 執行適合度檢定 (做一次就可以了)
 gof <- c("y") # "n" or "y"
 # 5. 輸出表格
 export <- c("n") # "n" or "y"
@@ -81,26 +81,6 @@ colnames(fitmargin.par) <- c("norm.Q.par1","norm.Q.par2","norm.Qs.par1","norm.Qs
                              "gumbel.Q.par1","gumbel.Q.par2","gumbel.Qs.par1","gumbel.Qs.par2",
                              "weibull.Q.par1","weibull.Q.par2","weibull.Qs.par1","weibull.Qs.par2",
                              "gamma.Q.par1","gamma.Q.par2","gamma.Qs.par1","gamma.Qs.par2")
-# 新增最後一行放選擇分布的參數值(預設值為0)
-# fitmargin.par <- data.frame(fitmargin.par, Q.par1=0, Q.par2=0, Qs.par1=0, Qs.par2=0)
-# # 建立margin的K-S檢定
-# margin.ks <- matrix(nrow=12,ncol=10)
-# colnames(margin.ks) <- c("norm.Q.ks","norm.Qs.ks",
-#                          "lnorm.Q.ks","lnorm.Qs.ks",
-#                          "gumbel.Q.ks","gumbel.Qs.ks",
-#                          "weibull.Q.ks","weibull.Qs.ks",
-#                          "gamma.Q.ks","gamma.Qs.ks")
-# 新增最後一行放選擇分布的參數值(預設值為0)
-# margin.ks <- data.frame(margin.ks, Q.par1=0, Q.par2=0, Qs.par1=0, Qs.par2=0)
-# # 建立margin的AIC
-# margin.aic <- matrix(nrow=12,ncol=10)
-# colnames(margin.aic) <- c("norm.Q.aic","norm.Qs.aic",
-#                          "lnorm.Q.aic","lnorm.Qs.aic",
-#                          "gumbel.Q.aic","gumbel.Qs.aic",
-#                          "weibull.Q.aic","weibull.Qs.aic",
-#                          "gamma.Q.aic","gamma.Qs.aic")
-# # 新增最後一行放選擇分布的參數值(預設值為0)
-# margin.aic <- data.frame(margin.aic, choice.Q.dist=0, choice.Qs.dist=0)
 
 # 建立copula參數估計表格(參數估計方法：itau, irho, mpl, ml)
 fitcopula.par <- matrix(nrow=12,ncol=12)
@@ -456,4 +436,3 @@ if (export=="y"){
   file <- paste("E:/R_output/CHIA-YUANG/result/copula_gof_pvalue.csv", sep="")
   write.csv(pvalue.table,file)
 }
-
