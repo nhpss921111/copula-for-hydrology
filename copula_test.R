@@ -124,7 +124,7 @@ j <- 0 # 計算月份次數
 # 主要執行迴圈
 for (m in month){
   j <- j + 1 # 計算月份次數
-  setwd("E:/R_reading/NEI-MAO-PU")
+  setwd("F:/R_reading/NEI-MAO-PU")
   data <- read.csv(file.path(getwd(),input[j])) 
   data <- data[,-1]
   attach(data)
@@ -401,7 +401,7 @@ for (m in month){
       pdf.new <- rbind(pdf.new, pdf)
     }
     # PDF出圖
-    setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
+    setwd("F:/R_output/NEI-MAO-PU/result/PDF") # 請修改儲存路徑：
     png(paste0("流量",q,"之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
     sameQ <- ggplot(pdf.new) +
       geom_line(aes(x = qs, y = condition.pdf, color = mon),size=1.3) + # 畫線圖
@@ -444,7 +444,7 @@ for (m in month){
       q.group <- q.group + 1
     }
     # PDF出圖
-    setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
+    setwd("F:/R_output/NEI-MAO-PU/result/PDF") # 請修改儲存路徑：
     png(paste0(m,"月流量之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
     sameMonth <- ggplot() +
       geom_line(data=pdf.new,aes(x = qs, y = condition.pdf, color = q),size=1.3)+  # 畫線圖
@@ -458,7 +458,7 @@ for (m in month){
     print(sameMonth)
     dev.off()
     if(observation.qs=="y"){
-      setwd("C:/Users/user/Desktop/PDF") # 請修改儲存路徑：
+      setwd("F:/R_output/NEI-MAO-PU/result/PDF") # 請修改儲存路徑：
       png(paste0(m,"月流量之PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
       sameMonth <- ggplot() +
         geom_line(data=pdf.new,aes(x = qs, y = condition.pdf, color = q),size=1.3)+  # 畫線圖
@@ -482,6 +482,6 @@ for (m in month){
 # export table
 if (export=="y"){
   colnames(pvalue.table)<-c("gumbelcopula","frankcopula","claytoncopula")
-  file <- paste("E:/R_output/CHIA-YUANG/result/copula_gof_pvalue.csv", sep="")
+  file <- paste("F:/R_output/NEI-MAO-PU/result/copula_gof_pvalue.csv", sep="")
   write.csv(pvalue.table,file)
 }
