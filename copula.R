@@ -1,6 +1,6 @@
 # 以聯結函數建立流量及輸砂量之雙變數機率分布模式
 # 開始日期：2020/07/08
-# 完成日期：2020/10/27
+# 完成日期：2020/10/30
 # By 連育成
 # ----------------- Setting --------------------- 
 # 邊際分布：norm, lnorm, gumbel, weibull, gamma
@@ -10,7 +10,7 @@
 # 聯結函數估計方法：itau, irho, mpl, ml
 # 聯結函數適合度檢定： method=Sn, optim=BFGS
 # -----------------------------------------------
-# rm(list=ls())
+rm(list=ls())
 library(stats) # 機率分布 
 library(actuar) # 機率分布 
 library(dplyr) # 資料整理 
@@ -29,10 +29,8 @@ library(scatterplot3d) #畫3D圖
 #
 # ============================= 執行前請先設定以下參數 =================================
 #
-# 選擇測站(要到setwd的路徑更改資料夾名稱)
-#
 # 1. Read data from csv flie
-month<- c(12) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
+month<- c(6) # 請輸入月分： (連續輸入、單獨輸入、跳著輸入都可以)
 input <- c(paste0(month,"month.csv"))
 #
 # Case(1)相同流量不同月份之情況
@@ -52,12 +50,12 @@ if (observation.qs =="y"){
   qs.table <- data.frame(ob.qs,0)
 }
 #
-# 2. 輸入邊際分布
-margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
-margin.num <- c(2,2) # 邊際分布代號(norm=1, lnorm=2, gumbel=3, weibull=4, gamma=5)
-# 3. 輸入聯結函數
- copula <-c("gumbelCopula") # 請輸入聯結函數：
-# 4. 執行適合度檢定 (做一次就可以了)
+# 2. 輸入邊際分布 (自動找出)
+# margin.dist <-c("lnorm","lnorm") # 請輸入邊際分布：
+# margin.num <- c(2,2) # 邊際分布代號(norm=1, lnorm=2, gumbel=3, weibull=4, gamma=5)
+# 3. 輸入聯結函數 (自動找出)
+# copula <-c("gumbelCopula") # 請輸入聯結函數：
+# 4. 執行適合度檢定
 gof <- c("y") # "n" or "y"
 # 5. 輸出表格
 export <- c("n") # "n" or "y"
@@ -148,14 +146,14 @@ for (m in month){
   rownames(margin.aic) <- c(candidate,"good dist")
   colnames(margin.aic) <- c(colnames(variable))
   # 邊際分布編號
-  #margin.num <- matrix(ncol=2)
+  margin.num <- matrix(ncol=2)
   #
   for(i in 1:dim(variable)[2]){ # Q ,QS
     var <- variable[,i]
     print(paste0("第",i,"個變數：",colnames(variable)[i])) #顯示第幾個及變數名稱
     # By Maximun Likelihood Estimate Method
     for(dist in c(1:length(candidate))){
-    # -------------------------- parameter estimate ----------------------------------
+      # -------------------------- parameter estimate ----------------------------------
       print(candidate[dist])
       dist.char <- c(candidate[dist],
                      paste0("d", candidate[dist]), 
@@ -185,13 +183,44 @@ for (m in month){
       if(i==2){
         margin.par[dist,3] <- as.numeric(par1) 
         margin.par[dist,4] <- as.numeric(par2)}
+      #
+      # ------------------------------- K-S test ------------------------
+      #
+      print("KS test")
+      result <- ks.test(var, dist.char[3], par1, par2)
+      print(paste0(candidate[dist], "的KS檢定P-value: ", result$p.value))
+      #
+      # 將P-value整理成表格
+      margin.ks[dist,i] <- result$p.value
+      #
+      # --------------------------------- AIC -----------------------------
+      print("AIC")
+      if(candidate[dist] != "gumbel"){
+        aic <- gofstat(md)
+        margin.aic[dist,i] <- aic$aic # 將AIC-value整理成表格
+        print(paste0(candidate[dist], "AIC值: ", aic$aic))}
+      if(candidate[dist] == "gumbel"){
+        aic <- abic.gumbel(var,par1,par2)
+        margin.aic[dist,i] <- aic$AIC # 將AIC-value整理成表格
+        print(paste0(candidate[dist], "AIC值: ", aic$AIC))}
     }
+    # 每個延時P-value排序，變成數值再排序
+    ks.choice <- rank(as.numeric(margin.ks[(1:dist),i])) 
+    margin.ks[length(candidate)+1,i] <- candidate[which.max(ks.choice)] #最大的P-value對應的機率分布
+    # 每個延時AIC-value排序，變成數值再排序
+    aic.choice <- rank(as.numeric(margin.aic[(1:dist),i])) 
+    margin.aic[length(candidate)+1,i] <- candidate[which.min(aic.choice)] #最小的AIC-value對應的機率分布
+    # 邊際分布代號(norm=1, lnorm=2, gumbel=3, weibull=4, gamma=5)
+    margin.num[,i] <- c(which.min(aic.choice)) 
   }
+  
+  margin.dist <-c(margin.aic[length(candidate)+1,1],margin.aic[length(candidate)+1,2]) # 請輸入邊際分布：
+  
   #
   # ---------------- copula parameter estimate & Goodness of fit test ------------------
   #
   candidate.copula <- c("gumbel","frank","clayton")
-
+  
   for(dist in c(1:length(candidate.copula))){
     print(paste0(candidate.copula[dist],"copula"))
     copula.char <- c(paste0(candidate.copula[dist],"Copula"))
@@ -202,8 +231,8 @@ for (m in month){
     data.probs <- cbind(var_a, var_b)
     #建立Mvdc
     Mvd2 <- mvdc(copula.func,margin.dist,
-                  param =list(list(margin.par[margin.num[1],1], margin.par[margin.num[1],2]),
-                              list(margin.par[margin.num[2],3], margin.par[margin.num[2],4])))
+                 param =list(list(margin.par[margin.num[1],1], margin.par[margin.num[1],2]),
+                             list(margin.par[margin.num[2],3], margin.par[margin.num[2],4])))
     # copula參數估計
     fit.tau <- fitCopula(Mvd2@copula, data.probs, method="itau")
     fit.rho <- fitCopula(Mvd2@copula, data.probs, method="irho")
@@ -263,7 +292,7 @@ for (m in month){
         gof.pvalue[m,11] <- gof.mpl$p.value
         gof.pvalue[m,12] <- gof.ml$p.value
       }
-    }
+    }  
   }
   # 選擇pvalue最大的值，並找出是哪個聯結函數(每個聯結函數使用四種參數估計法)
   gof.pvalue[m,13] <- floor(which.max(gof.pvalue[m,])%/%(4+.1)+1) #每四個為一組
@@ -287,17 +316,17 @@ for (m in month){
     scatterplot3d(u[,1], u[,2], pdf_, color="red", main="Density",xlab ="u1", ylab="u2", zlab="dCopula", pch=".")
     persp(mycopula, dCopula, main ="Density")
     contour(mycopula, dCopula, xlim = c(0, 1), ylim=c(0, 1), main = "Contour plot")
-  
+    
     ## 3D plain scatterplot of the CDF, plot of the CDF and contour plot
     par(mfrow = c(1, 3))
     scatterplot3d(u[,1], u[,2], cdf, color="red", main="CDF", xlab = "u1", ylab="u2", zlab="pCopula",pch=".")
     persp(mycopula, pCopula, main = "CDF")
     contour(mycopula, pCopula, xlim = c(0, 1), ylim=c(0, 1), main = "Contour plot")
-  
+    
     # Build the bivariate distribution
     my_dist <- mvdc(mycopula, margin.dist,
-                   paramMargins=list(list(margin.par[margin.num[1],1], margin.par[margin.num[1],2]),
-                                     list(margin.par[margin.num[2],3], margin.par[margin.num[2],4])))
+                    paramMargins=list(list(margin.par[margin.num[1],1], margin.par[margin.num[1],2]),
+                                      list(margin.par[margin.num[2],3], margin.par[margin.num[2],4])))
     # Generate random sample observations from the multivariate distribution
     v <- rMvdc(5000, my_dist) # 隨機生成5000點的模型
     # Compute the density
@@ -329,7 +358,7 @@ for (m in month){
   pdf_mvd <- dMvdc(v, Mvdc)
   # Compute the CDF
   cdf_mvd <- pMvdc(v, Mvdc)
-  contour(Mvdc,pMvdc,xlim = c(0, 100), ylim=c(0, 1500),main=paste0(m,"月雙變數機率分布(CDF)"),
+  contour(Mvdc,pMvdc,xlim = c(0, 80), ylim=c(0, 2000),main=paste0(m,"月雙變數機率分布(CDF)"),
           xlab="流量Q (cms)",ylab="輸砂量Qs (公噸)",labcex = 1.2,lwd=1.5,drawlabels = TRUE)
   scatterplot3d(x=v[,1], y=v[,2],z=pdf_mvd,color="red", main=paste0(m,"月的PDF"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
   scatterplot3d(x=v[,1], y=v[,2],z=cdf_mvd,color="red", main=paste0(m,"月雙變數機率分布(CDF)"), xlab = "流量Q (cms)", ylab="輸砂量Qs (公噸)", zlab="累積機率",pch=".")
@@ -433,6 +462,6 @@ for (m in month){
 # export table
 if (export=="y"){
   colnames(pvalue.table)<-c("gumbelcopula","frankcopula","claytoncopula")
-  file <- paste("E:/R_output/CHIA-YUANG/result/copula_gof_pvalue.csv", sep="")
+  file <- paste("F:/R_output/CHIA-YUANG/result/copula_gof_pvalue.csv", sep="")
   write.csv(pvalue.table,file)
 }
