@@ -13,6 +13,9 @@ for (y in 1:length(input)){
   setwd("F:/R_reading/CHIA-YUANG/discharge")
   data <- read.csv(file.path(getwd(),input[y])) # 第y年所有流量資料
   data <- data[,-1] # 整理多餘的行數
+  data <- as.data.frame(data)
+  #data[is.na(data)] <- 0
+  #data[data == "*" ] <- 0
   # 先做完第一月
   Q <- data[,(2+1)] # 選取第1月的流量
   month.data <- as.data.frame(cbind(data[,1],1,data[,2],Q,0)) # 整理表格
@@ -43,6 +46,7 @@ for (y in 1:length(input)){
     colnames(cb.data.new) <- c("Year","Month","Day","Discharge","Suspended.Load")
     cb.data <- rbind(cb.data,cb.data.new)
   }
-  file <- paste("F:/R_output/CHIA-YUANG/missingdata/", paste0(year[y],"QandQs.csv"), sep="") #存檔路徑  
+  cb.data$Discharge[is.na(cb.data$Discharge)] <- 0
+  file <- paste("F:/R_output/CHIA-YUANG/missingdata/", paste0(year[y],"QandQs.csv"), sep="") #存檔路徑
   write.csv(cb.data,file) #結果寫到csv裡面
 }
