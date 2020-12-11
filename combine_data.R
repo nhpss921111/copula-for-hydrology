@@ -9,9 +9,9 @@
 # By連育成
 
 rm(list=ls())
-year <- c(1975:2019) # 請輸入年分： 第2年資料到第n年資料
-setwd("E:/R_reading/CHIA-YUANG/")
-ori.data <- read.csv(file.path(getwd(),"1974.csv"),header = T) # 第一年資料
+year <- c(2011:2019) # 請輸入年分： 第2年資料到第n年資料
+setwd("E:/R_reading/NEI-MAO-PU/")
+ori.data <- read.csv(file.path(getwd(),"2010.csv"),header = T) # 第一年資料
 new.data <- ori.data 
 input <- c(paste0(year,".csv")) 
 for(i in c(1:length(input))){
@@ -19,6 +19,5 @@ for(i in c(1:length(input))){
   new.data <- rbind(new.data,data) # 把資料新增進來
 }
 new.data <- new.data[,-1]
-file <- paste("E:/R_output/CHIA-YUANG/", "1974-2019.csv", sep="") #存檔路徑
+file <- paste("E:/R_output/NEI-MAO-PU/", "2010-2019.csv", sep="") #存檔路徑
 write.csv(new.data,file) #結果寫到csv裡面
-arrange(new.data,Month)
