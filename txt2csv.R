@@ -7,6 +7,8 @@
 # 更改路徑就能做不同的測站
 # Input："年分".txt
 # Ouput："年分".csv
+# CHIA-YUANG：家源橋
+# CHUNYUN BRIDGE：彰雲橋
 
 rm(list = ls()) # 清除資料
 setwd("F:/R_reading/CHUNYUN BRIDGE/form_pdf/SSL/") #濁水溪-彰雲橋
