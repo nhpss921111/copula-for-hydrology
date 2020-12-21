@@ -1,8 +1,8 @@
 # 來源：爬蟲，水文年報(2000年以前)  2019/11/02 BY奕廷學長
-# 因為每年觀測次數不同，所以無法一次全部爬完再存
-# 所以需要每爬完一年就儲存
+# 爬取水文年報中測站的日平均流量(cms)
+# 全部抓下來後，再清洗資料
 # 開始撰寫日期：2020/07/02
-# 完成撰寫日期：2020/07/06
+# 完成撰寫日期：2020/12/04
 rm(list = ls())
 library(rvest)
 library(magrittr)
@@ -11,8 +11,8 @@ output <- "y"
 #
 #----起始資料
 #測站編號
-station <- c("2560H017")
-year <- c(1974:2000)
+station <- c("1510H057") #濁水溪-彰雲橋
+year <- c(1985:2000) 
 #
 #----
 # 先建立錯誤函數：
@@ -40,7 +40,7 @@ daily.rec.err.func <- function(x){
 }
 #----
 sum.data <- c()
-#抓取每年資料
+# 抓取每年資料
 for(s in c(1:length(station))){
   
   for(yr in year){ #資料年分：
@@ -60,6 +60,7 @@ for(s in c(1:length(station))){
 rm.data <- sum.data[28:430,] # 移除多餘的欄位
 colnames(rm.data) <- year # 列的名稱
 
+# 清洗資料
 for (i in 1:length(year)){
   year.line <- t(data.frame(rm.data[paste0(year[i])])) #選出一年的資料
   
@@ -69,9 +70,8 @@ for (i in 1:length(year)){
   year.data <- cbind(year[i],year.data)
   colnames(year.data) <- c("年","日","一月","二月","三月","四月","五月","六月",
                            "七月","八月","九月","十月","十一","十二月")
-
   #輸出csv
   if(output == "y"){
-    write.csv(year.data, file = paste0("F:/R_output/crawling/CHIA-YUANG/discharge/",year[i], ".csv"))}
+    write.csv(year.data, file = paste0("F:/R_output/crawling/CHUNYUN BRIDGE/discharge/",year[i], ".csv"))}
 }
 
