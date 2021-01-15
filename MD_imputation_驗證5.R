@@ -70,10 +70,12 @@ mape <- function(actual, predicted) { # 平均絕對百分誤差
     ob.data <- rbind(ob.data,data)
   }
   ob.data <- subset(ob.data,ob.data[,4]>0) # 把流量為0(無觀測資料)刪除
-  rm.ob.data <- ob.data[complete.cases(ob.data), ] # 移除全部NA 
+  log.data <- cbind(ob.data[,1:3],log10(ob.data[,4:5]))
+  rm.ob.data <- ob.data[complete.cases(ob.data), ] # 移除原始觀測資料中全部NA 
+  rm.log.data <- log.data[complete.cases(log.data), ] # 移除觀測資料取對數後全部NA 
   #ob.data <- subset(ob.data,ob.data[,4]>20 & ob.data[,5]>1000)
   #
-  # ---- 所有觀測資料 ----
+  # ---- 所有觀測資料(原始) ----
   #
   ggplot(data=ob.data,aes(x=Discharge,y=Suspended.Load))+
     geom_point()+
@@ -82,6 +84,22 @@ mape <- function(actual, predicted) { # 平均絕對百分誤差
     #geom_mark_ellipse(expand = 0,aes(fill=group))+ # 橢圓形圈
     #geom_mark_hull(concavity = 5,expand=0,radius=0,aes(fill=group))+ # 多邊形
     #geom_mark_hull(expand=0.01,aes(fill=group))+ # 凹凸多邊形
+    ggtitle(paste0(year[1],"到",year[y],"年",station_ch,"測站觀測資料")) +
+    theme_bw() + # 白底
+    theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+    theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+    theme(text=element_text(size=30))  # 字體大小
+  #
+  # ---- 所有觀測資料(對數) ----
+  #
+  ggplot(data=log.data,aes(x=Discharge,y=Suspended.Load))+
+    geom_point()+
+    scale_color_discrete(name="年",labels=c(""))+
+    labs(x="log10 流量(cms)",y="log10 輸砂量Qs (公噸)") + # 座標軸名稱
+    #geom_mark_ellipse(expand = 0,aes(fill=group))+ # 橢圓形圈
+    #geom_mark_hull(concavity = 5,expand=0,radius=0,aes(fill=group))+ # 多邊形
+    #geom_mark_hull(expand=0.01,aes(fill=group))+ # 凹凸多邊形
+    ggtitle(paste0(year[1],"到",year[y],"年",station_ch,"測站觀測資料(對數)")) +
     theme_bw() + # 白底
     theme(panel.grid.major = element_blank()) + # 隱藏主要格線
     theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
@@ -100,8 +118,8 @@ mape <- function(actual, predicted) { # 平均絕對百分誤差
     # group 8：98% ~  99%
     # group 9：99% ~ 100%
     
-    rank.data <- cbind(ob.data,rank(ob.data$Discharge))
-    persent <- (rank.data$`rank(ob.data$Discharge)`) / length(rank.data$Discharge)
+    rank.data <- cbind(log.data,rank(log.data$Discharge))
+    persent <- (rank.data$`rank(log.data$Discharge)`) / length(rank.data$Discharge)
     per.data <- cbind(rank.data,persent)
     
     data.1 <- data.frame(subset(per.data, persent<=0.2),group="group1")
@@ -125,15 +143,15 @@ mape <- function(actual, predicted) { # 平均絕對百分誤差
   }
   
   if (group.number==5){
-    #  -------------- 決定流量分組範圍 (來源：ob.data) ---------------
+    #  -------------- 決定流量分組範圍 (來源：log.data) ---------------
     # group 1： 0% ~  20%
     # group 2：20% ~  40%
     # group 3：40% ~  60%
     # group 4：60% ~  80%
     # group 5：80% ~  100%
     
-    rank.data <- cbind(ob.data,rank(ob.data$Discharge))
-    persent <- (rank.data$`rank(ob.data$Discharge)`) / length(rank.data$Discharge)
+    rank.data <- cbind(log.data,rank(log.data$Discharge))
+    persent <- (rank.data$`rank(log.data$Discharge)`) / length(rank.data$Discharge)
     per.data <- cbind(rank.data,persent)
     
     data.1 <- data.frame(subset(per.data, persent<=0.2),group="group1")
@@ -155,12 +173,12 @@ mape <- function(actual, predicted) { # 平均絕對百分誤差
   # ----------- 將同時有Q與Qs的資料分兩組 (80%資料總數建模，剩下20%當成驗證) -------------
   #
   
-  x.samp <- as.matrix(rm.ob.data[,4:5])
-  miss.row    <- sample(1:length(rm.ob.data$Discharge), perc.mis*length(rm.ob.data$Discharge), replace=FALSE)
-  miss.col    <- rep(2,perc.mis*length(rm.ob.data$Discharge))
+  x.samp <- as.matrix(rm.log.data[,4:5])
+  miss.row    <- sample(1:length(rm.log.data$Discharge), perc.mis*length(rm.log.data$Discharge), replace=FALSE)
+  miss.col    <- rep(2,perc.mis*length(rm.log.data$Discharge))
   miss        <- cbind(miss.row,miss.col)
   samp.miss <- replace(x.samp,miss,NA) # NA的欄位座標
-  MD <- cbind(rm.ob.data[,1:3],samp.miss) # 將 ?% 觀測資料轉換成NA
+  MD <- cbind(rm.log.data[,1:3],samp.miss) # 將 ?% 觀測資料轉換成NA
   
   MD.rmNA <- MD[complete.cases(MD), ] # 移除全部NA (剩餘資料)
   
@@ -172,6 +190,7 @@ mape <- function(actual, predicted) { # 平均絕對百分誤差
     #geom_mark_ellipse(expand = 0,aes(fill=group))+ # 橢圓形圈
     #geom_mark_hull(concavity = 5,expand=0,radius=0,aes(fill=group))+ # 多邊形
     #geom_mark_hull(expand=0.01,aes(fill=group))+ # 凹凸多邊形
+    ggtitle(paste0(year[1],"到",year[y],"年",station_ch,"測站建立模型")) +
     theme_bw() + # 白底
     theme(panel.grid.major = element_blank()) + # 隱藏主要格線
     theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
@@ -183,34 +202,35 @@ mape <- function(actual, predicted) { # 平均絕對百分誤差
                 year[1],"到", year[y],"年不分組率定曲線初始值查找.csv", sep="") #存檔路徑
   write.csv(MD.rmNA,file)
   # 從"率定曲線初始值.csv"找到a,b的初始值再帶入
-  SSpower <- selfStart(~ A*x^B,
-                       function(mCall, data, LHS)
-                       {
-                         xy <- sortedXyData(mCall[["x"]], LHS, data)
-                         if(nrow(xy) < 3) {
-                           stop("Too few distinct x values to fit a power function")
-                         }
-                         z <- xy[["y"]]
-                         xy[["logx"]] <- log(xy[["x"]])     
-                         xy[["logy"]] <- log(xy[["y"]])  
-                         aux <- coef(lm(logy ~ logx, xy))
-                         pars <- c(exp(aux[[1]]), aux[[2]])
-                         setNames(pars,
-                                  mCall[c("A", "B")])
-                       }, c("A", "B"))
-  rating <- nls(Suspended.Load ~SSpower(Discharge,a,b),data=MD.rmNA)
+  # SSpower <- selfStart(~ A*x^B,
+  #                      function(mCall, data, LHS)
+  #                      {
+  #                        xy <- sortedXyData(mCall[["x"]], LHS, data)
+  #                        if(nrow(xy) < 3) {
+  #                          stop("Too few distinct x values to fit a power function")
+  #                        }
+  #                        z <- xy[["y"]]
+  #                        xy[["logx"]] <- log(xy[["x"]])     
+  #                        xy[["logy"]] <- log(xy[["y"]])  
+  #                        aux <- coef(lm(logy ~ logx, xy))
+  #                        pars <- c(exp(aux[[1]]), aux[[2]])
+  #                        setNames(pars,
+  #                                 mCall[c("A", "B")])
+  #                      }, c("A", "B"))
+  # rating <- nls(Suspended.Load ~SSpower(Discharge,a,b),data=MD.rmNA)
   # rating <- nls(Suspended.Load ~ a*Discharge^b, algorithm="port",
   #               control = list(maxiter = 200,minFactor = 1/2^300,warnOnly = TRUE),
   #               start=list(a=1,b=1), data=MD.rmNA,trace=T) # 初始值要給好!!!
+  rating <- lm(Suspended.Load ~ Discharge,data=MD.rmNA)
   summary(rating) # 觀察
-  a <- environment(rating[["m"]][["resid"]])[["env"]][["a"]] # 迴歸係數a
-  b <- environment(rating[["m"]][["resid"]])[["env"]][["b"]] # 迴歸係數b
-  rating.par <- cbind(a,b)
+  log10.a <- rating$coefficients[1] # 迴歸係數log10(a)
+  b <- rating$coefficients[2] # 迴歸係數b
+  rating.par <- cbind(log10.a,b)
   file <- paste("F:/R_output/",station,"/imputation_validation(",perc.mis,"NA)(",group.number,"groups)/",
                 year[1],"到", year[y],"年不分組率定曲線係數.csv", sep="") #存檔路徑
   write.csv(rating.par,file)
-  ratingSSL <- a*(MD$Discharge)^b # 計算率定曲線推估的輸砂量
-  rating.all <- cbind(rm.ob.data,MD[,5],ratingSSL)
+  ratingSSL <- log10.a + b* (MD$Discharge) # 計算率定曲線推估的輸砂量
+  rating.all <- cbind(rm.log.data,MD[,5],ratingSSL)
   colnames(rating.all) <- c("Year","Month","Day","Discharge",
                            "Suspended.Load","asNA","ratingSSL_all")
   rmse <- function(actual, predicted) { # 均方根誤差公式
@@ -284,7 +304,7 @@ mape <- function(actual, predicted) { # 平均絕對百分誤差
     rownames(copula.list) <- paste0("group",g)
     copula.parameter.table <- rbind(copula.parameter.table,copula.list) # 傳承
     
-    imp.group <- cbind(subset(rm.ob.data,Discharge>group.BC[g] & Discharge<=group.BC[g+1]),
+    imp.group <- cbind(subset(rm.log.data,Discharge>group.BC[g] & Discharge<=group.BC[g+1]),
                    subset(MD[,4:5],Discharge>group.BC[g] & Discharge<=group.BC[g+1])[,2],
                    imp@Imputed.data.matrix[,2]) # 提取補遺值，並合併成結果表格
     
@@ -302,13 +322,14 @@ mape <- function(actual, predicted) { # 平均絕對百分誤差
     #               control = list(maxiter = 200, minFactor = 1/2^300, warnOnly = F),weights,
     #               start=list(a=0.1,b=2), data=as.data.frame(MD.bygroup[complete.cases(MD.bygroup), ]),
     #               trace=T) # 乘冪迴歸式
+    rating <- lm(Suspended.Load ~ Discharge,data=as.data.frame(MD.bygroup[complete.cases(MD.bygroup), ]))
     summary(rating) # 觀察
-    a <- environment(rating[["m"]][["resid"]])[["env"]][["a"]] # 迴歸係數a
-    b <- environment(rating[["m"]][["resid"]])[["env"]][["b"]] # 迴歸係數b
-    rating.par.group <- cbind(a,b)
+    log10.a <- rating$coefficients[1] # 迴歸係數log10(a)
+    b <- rating$coefficients[2] # 迴歸係數b
+    rating.par.group <- cbind(log10.a,b)
     rownames(rating.par.group) <- paste0("group",g)
     rating.par.table <- rbind(rating.par.table,rating.par.group)
-    ratingSSL <- a*(imp.group$Discharge)^b # 計算率定曲線推估的輸砂量
+    ratingSSL <- log10.a + b *(imp.group$Discharge) # 計算率定曲線推估的輸砂量
     imp.group <- cbind(imp.group,ratingSSL)
     colnames(imp.group) <- c("Year","Month","Day","Discharge","Suspended.Load",
                              "asNA","Imp.SSL","ratingSSL_group")
@@ -413,7 +434,7 @@ mape <- function(actual, predicted) { # 平均絕對百分誤差
   write.csv(rating.par.table,file)
   
   file <- paste("F:/R_output/",station,"/imputation_validation(",perc.mis,"NA)(",group.number,"groups)/",
-                year[1],"到", year[y],"年率定曲線vs補遺法.csv", sep="") #存檔路徑
+                year[1],"到", year[y],"年率定曲線vs補遺法(取對數).csv", sep="") #存檔路徑
   write.csv(loss.cf,file)
   
   file <- paste("F:/R_output/",station,"/imputation_validation(",perc.mis,"NA)(",group.number,"groups)/",
@@ -427,26 +448,66 @@ mape <- function(actual, predicted) { # 平均絕對百分誤差
   file <- paste("F:/R_output/",station,"/imputation_validation(",perc.mis,"NA)(",group.number,"groups)/",
                 year[1],"到", year[y],"年各組損失函數比較.csv", sep="") #存檔路徑
   write.csv(loss.table,file)
-  # -----------------------
-  
-  # 
-  # if (which.max(loss.cf[,1]) == 1){
-  #   break
-  # }
 
-  seednum <- seednum + 1
 #}
-#print(paste0("第",seednum,"次成功"))
+
 
 setwd(paste0("F:/R_output/",station,"/imputation_validation(",perc.mis,"NA)(",group.number,"groups)")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站補遺驗證(all).png"),width = 1250, height = 700, units = "px", pointsize = 12)
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站補遺驗證(all-對數值).png"),width = 1250, height = 700, units = "px", pointsize = 12)
 All.cf <- ggplot(data=result.table)+
   geom_point(aes(x=Discharge,y=Imp.SSL,color="補遺值"))+
   geom_point(aes(x=Discharge,y=Suspended.Load,color="觀測值"))+
   geom_line(aes(x=Discharge,y=ratingSSL_group,color="率定曲線(有分組)")) + #
   geom_line(aes(x=Discharge,y=ratingSSL_all,color="率定曲線(不分組)")) + #
   scale_color_discrete(name="圖例") + #圖例名稱
-  ggtitle(paste0(year[1],"到",year[y],"年",station_ch,"測站補遺驗證(all)"))+
+  ggtitle(paste0(year[1],"到",year[y],"年",station_ch,"測站補遺驗證(all-對數值)"))+
+  theme(text=element_text(size=20))  # 字體大小
+plot(All.cf)
+dev.off()
+#
+# ------- 返回成原本尺度 ------
+#
+final.table <- cbind(result.table[,1:3],10^result.table[,4:9])
+final.cf.table <- final.table[(is.na(final.table$asNA)),] #保留 na
+# rmse (root mean square error)
+rmse.rating_a <- rmse(final.cf.table$Suspended.Load, final.cf.table$ratingSSL_all) #原本移除的觀測值與率定值
+rmse.rating_g <- rmse(final.cf.table$Suspended.Load, final.cf.table$ratingSSL_group) #原本移除的觀測值與率定值
+rmse.imp <- rmse(final.cf.table$Suspended.Load, final.cf.table$Imp.SSL) #原本移除的觀測值與補遺值
+
+# nmse (normalize mean square error)
+nmse.rating_a <- nmse(final.cf.table$Suspended.Load, final.cf.table$ratingSSL_all) #原本移除的觀測值與率定值
+nmse.rating_g <- nmse(final.cf.table$Suspended.Load, final.cf.table$ratingSSL_group) #原本移除的觀測值與率定值
+nmse.imp <- nmse(final.cf.table$Suspended.Load, final.cf.table$Imp.SSL) #原本移除的觀測值與補遺值
+
+# mse (mean absolute error)
+mse.rating_a <- mse(final.cf.table$Suspended.Load, final.cf.table$ratingSSL_all) #原本移除的觀測值與率定值
+mse.rating_g <- mse(final.cf.table$Suspended.Load, final.cf.table$ratingSSL_group) #原本移除的觀測值與率定值
+mse.imp <- mse(final.cf.table$Suspended.Load, final.cf.table$Imp.SSL) #原本移除的觀測值與補遺值
+
+# mape (mean absolute persentage error)
+mape.rating_a <- mape(final.cf.table$Suspended.Load, final.cf.table$ratingSSL_all) #原本移除的觀測值與率定值
+mape.rating_g <- mape(final.cf.table$Suspended.Load, final.cf.table$ratingSSL_group) #原本移除的觀測值與率定值
+mape.imp <- mape(final.cf.table$Suspended.Load, final.cf.table$Imp.SSL) #原本移除的觀測值與補遺值
+
+rating.allgroup <- cbind(rmse.rating_a,nmse.rating_a,mse.rating_a,mape.rating_a)
+rating.bygroup <- cbind(rmse.rating_g,nmse.rating_g,mse.rating_g,mape.rating_g)
+imp.bygroup <- cbind(rmse.imp,nmse.imp,mse.imp,mape.imp)
+loss.cf <- rbind(rating.allgroup,rating.bygroup ,imp.bygroup)
+rownames(loss.cf) <- c("rating不分組","rating有分組","copula補遺")
+colnames(loss.cf) <- c("RMSE","NMES","MES","MAPE")
+file <- paste("F:/R_output/",station,"/imputation_validation(",perc.mis,"NA)(",group.number,"groups)/",
+              year[1],"到", year[y],"年率定曲線vs補遺法(實際值).csv", sep="") #存檔路徑
+write.csv(loss.cf,file)
+
+setwd(paste0("F:/R_output/",station,"/imputation_validation(",perc.mis,"NA)(",group.number,"groups)")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站補遺驗證(all-實際值).png"),width = 1250, height = 700, units = "px", pointsize = 12)
+All.cf <- ggplot(data=final.table)+
+  geom_point(aes(x=Discharge,y=Imp.SSL,color="補遺值"))+
+  geom_point(aes(x=Discharge,y=Suspended.Load,color="觀測值"))+
+  geom_line(aes(x=Discharge,y=ratingSSL_group,color="率定曲線(有分組)")) + #
+  geom_line(aes(x=Discharge,y=ratingSSL_all,color="率定曲線(不分組)")) + #
+  scale_color_discrete(name="圖例") + #圖例名稱
+  ggtitle(paste0(year[1],"到",year[y],"年",station_ch,"測站補遺驗證(all-實際值)"))+
   theme(text=element_text(size=20))  # 字體大小
 plot(All.cf)
 dev.off()
