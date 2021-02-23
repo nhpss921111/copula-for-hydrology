@@ -350,7 +350,7 @@ plot(v[,2], con.pdf, xlim=c(0,1000),type="p",main="conditional pdf of L given th
 ## conditional CDF of L given the q0
 F_Q <- get(paste0("p",margin.dist[1]))(givenQ, margin.par[margin.num[1],1], margin.par[margin.num[1],2])
 F_L <- get(paste0("p",margin.dist[2]))(MD.anal$Suspended.Load, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
-con.cdf <- cCopula(cbind(F_Q,F_L), copula = copula.func, inverse = F)
+con.cdf <- cCopula(cbind(F_Q,F_L), copula = copula.func,indices = 1:dim(copula.func), inverse = F)
 ggplot()+
   geom_line(aes(x=MD.anal$Suspended.Load,y=con.cdf[,2]))
 plot(MD.anal$Suspended.Load,con.cdf[,2], type="", main="conditional cdf of L given the q")
@@ -368,5 +368,56 @@ plot(MD.anal$Suspended.Load,con.cdf[,2], xlim=c(0,1000),type="l", main="conditio
 max(con.pdf) # 最大PDF值
 all.Qs[which.max(con.pdf)] # PDF最大值所推估的輸砂量
 # 2.(Peng et al. 2020)
-cCopula(cbind(F_Q,F_L), copula = copula.func, inverse = T)
+r <- runif(1)
+con.cdf1 <- cCopula(cbind(F_Q,r), copula = copula.func,indices = 2, inverse = T)
 
+est.L <- qlnorm(con.cdf1,margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+
+# ---------
+### Evaluation of and sampling from C_{j|1,..,j-1}(.|u_1,..,u_{j-1})
+
+## Define the copula
+nu <- 3.5
+theta <- iTau(tCopula(df = nu), tau = 0.5)
+tc <- tCopula(theta, df = nu)
+## Evaluate the df C(.|u_1) at u for several u_1
+u <- c(0.05, 0.3, 0.7, 0.95)
+u2 <- seq(0, 1, by = 0.01)
+ccop <- sapply(u, function(u.)
+  cCopula(cbind(u., u2), copula = tc, indices = 2))
+## Evaluate the function C(u_2|.) at u for several u_2
+u1 <- seq(0, 1, by = 0.01)
+ccop. <- sapply(u, function(u.)
+  cCopula(cbind(u1, u.), copula = tc, indices = 2))
+
+matplot(ccop, type = "l", lty = 1, lwd = 2,
+        col = (cols <- seq_len(ncol(ccop))), ylab = "",
+        xlab = substitute(C["2|1"](u[2]~"|"~u[1])~~"as a function of"~
+                            u[2]~"for a"~{C^italic(t)}[list(rho,nu)]~"copula",
+                          list(nu = nu)))
+legend("bottomright", bty = "n", lwd = 2, col = cols,
+       legend = as.expression(lapply(seq_along(u), function(j)
+         substitute(u[1] == u1, list(u1 = u[j])))))
+
+matplot(ccop., type = "l", lty = 1, lwd = 2,
+        col = (cols <- seq_len(ncol(ccop.))), ylab = "",
+        xlab = substitute(C["2|1"](u[2]~"|"~u[1])~~"as a function of"~
+                            u[1]~"for a"~{C^italic(t)}[list(rho,nu)]~"copula",
+                          list(nu = nu)))
+legend("center", bty = "n", lwd = 2, col = cols,
+       legend = as.expression(lapply(seq_along(u), function(j)
+         substitute(u[2] == u2, list(u2 = u[j])))))
+
+## Sample from C_{2|1}(.|u_1)
+set.seed(271)
+u2 <- runif(1000)
+## Small u_1
+u1 <- 0.05
+U2 <- cCopula(cbind(u1, u2), copula = tc, indices = 2, inverse = TRUE)
+## Large u_1
+u1. <- 0.95
+U2. <- cCopula(cbind(u1., u2), copula = tc, indices = 2, inverse = TRUE)
+ggplot()+
+  geom_line(aes(x,y=U2))
+plot(U2, ylab = substitute(U[2]~"|"~U[1]==u, list(u = u1)))
+plot(U2., ylab = substitute(U[2]~"|"~U[1]==u, list(u = u1.)))
