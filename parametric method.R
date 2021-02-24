@@ -1,7 +1,7 @@
 # 邊際分布：parametric method
 # copula函數：IFM method
 # 開始撰寫日期：2020/02/16
-# 完成撰寫日期：2021/02/18
+# 完成撰寫日期：2021/02/24
 rm(list=ls())
 library(copula)
 library(CoImp)
@@ -39,6 +39,22 @@ year <- c(1974:2009,2012:2019) # 年分
 MD.input <- c(paste0(year,"QandQs.csv"))
 output <- c(paste0(year,"imp.csv"))
 ob.data <- c()
+# ---- 誤差指標公式 ----
+e <- function(actual, predicted) { # 相對誤差
+  (actual - predicted)/actual
+}
+mse <- function(actual, predicted) { # 均方誤差
+  mean((actual - predicted) ^ 2)
+}
+rmse <- function(actual, predicted) { # 均方根誤差
+  sqrt(mean((actual - predicted) ^ 2))
+}
+nmse <- function(actual, predicted) { # 正歸化均方根誤差
+  mean((actual - predicted) ^ 2)/mean((actual - mean(actual)) ^ 2)
+}
+mape <- function(actual, predicted) { # 平均絕對百分誤差
+  100*mean(abs((actual - predicted)/actual))
+}
 # ----------------
 # 建立margin參數估計表格(參數估計方法：mle)(候選分布：norm, lnorm, gumbel, weibull, gamma)
 fitmargin.par <- matrix(nrow=12,ncol=20)
@@ -75,17 +91,23 @@ for( y in 1:length(year)){
 ob.data <- subset(ob.data,ob.data[,4]>0) # 把流量為0(無觀測資料)刪除
 log.data <- cbind(ob.data[,1:3],log10(ob.data[,4:5]))
 rm.ob.data <- ob.data[complete.cases(ob.data), ] # 移除原始觀測資料中全部NA
+file <- paste("F:/R_output/",station,"/parametric method/",
+              year[1],"到", year[y],station_ch,"流量&輸砂量(100%觀測資料).csv", sep="") #存檔路徑
+write.csv(rm.ob.data,file)
 rm.log.data <- log.data[complete.cases(log.data), ] # 移除觀測資料取對數後全部NA
 #ob.data <- subset(ob.data,ob.data[,4]>20 & ob.data[,5]>1000)
 
 x.samp <- as.matrix(rm.ob.data[,4:5])
 miss.row    <- sample(1:length(rm.ob.data$Discharge), perc.mis*length(rm.ob.data$Discharge), replace=FALSE)
 miss.col    <- rep(2,perc.mis*length(rm.ob.data$Discharge))
-miss        <- cbind(miss.row,miss.col)
-samp.miss <- replace(x.samp,miss,NA) # NA的欄位座標
-MD <- cbind(rm.ob.data[,1:3],samp.miss) # 將 ?% 觀測資料轉換成NA
+miss        <- cbind(miss.row,miss.col) # NA的欄位座標
+samp.miss <- replace(x.samp,miss,NA) # 將 ?% 觀測資料轉換成NA
+MD <- cbind(rm.ob.data[,1:3],samp.miss) 
 MD.withNA <- MD[,4:5]
 MD.rmNA <- MD[complete.cases(MD), ] # 移除全部NA (剩餘資料)
+file <- paste("F:/R_output/",station,"/parametric method/",
+              year[1],"到", year[y],station_ch,"率定模式(70%觀測資料).csv", sep="") #存檔路徑
+write.csv(MD.rmNA,file)
 #
 # =============== Determine margianl distribution (parametric) ==============
 #
@@ -195,6 +217,16 @@ for(i in 1:dim(MD.anal)[2]){ # Q ,QS
 
 margin.dist <-c(margin.aic[length(candidate)+1,1],margin.aic[length(candidate)+1,2]) # 請輸入邊際分布：
 
+# 儲存 margins 相關資料
+file <- paste("F:/R_output/",station,"/parametric method/",
+              year[1],"到", year[y],station_ch," margins parameter.csv", sep="") #存檔路徑
+write.csv(margin.par,file)
+file <- paste("F:/R_output/",station,"/parametric method/",
+              year[1],"到", year[y],station_ch," margins ks_test.csv", sep="") #存檔路徑
+write.csv(margin.ks,file)
+file <- paste("F:/R_output/",station,"/parametric method/",
+              year[1],"到", year[y],station_ch," margins AIC.csv", sep="") #存檔路徑
+write.csv(margin.aic,file)
 #
 # ================== Determine copula function ==========================
 #
@@ -213,7 +245,8 @@ for(dist in c(1:length(candidate.copula))){
   #             paramMargins = list(list(margin.par[margin.num[1],1], margin.par[margin.num[1],2]),
   #                                 list(margin.par[margin.num[2],3], margin.par[margin.num[2],4])))
   # copula參數估計
-  
+  # loglikMvdc(c(1,1,1,1), MD.anal, mvd2)
+  # fitMvdc(MD.anal,mvd2,start=)
   fit.tau <- fitCopula(copula.func, data.probs, method="itau")
   fit.rho <- fitCopula(copula.func, data.probs, method="irho")
   fit.mpl <- fitCopula(copula.func, data.probs, method="mpl")
@@ -276,8 +309,16 @@ for(dist in c(1:length(candidate.copula))){
 }
 # 選擇pvalue最大的值，並找出是哪個聯結函數(每個聯結函數使用四種參數估計法)
 gof.pvalue[13] <- floor(which.max(gof.pvalue)%/%(4+.1)+1) #每四個為一組
-# 最佳連結函數的參數
+# 最佳copula function的參數
 fitcopula.par[13] <- fitcopula.par[which.max(gof.pvalue[1:12])]
+
+# 儲存copula function相關資料
+file <- paste("F:/R_output/",station,"/parametric method/",
+              year[1],"到", year[y],station_ch," copula parameter.csv", sep="") #存檔路徑
+write.csv(fitcopula.par,file)
+file <- paste("F:/R_output/",station,"/parametric method/",
+              year[1],"到", year[y],station_ch," copula gof.csv", sep="") #存檔路徑
+write.csv(gof.pvalue,file)
 
 # ============= Build Mvdc (parametric margins + parametric copula) ==============
 # ---- 1. variable----
@@ -303,6 +344,65 @@ fitcopula.par[13] <- fitcopula.par[which.max(gof.pvalue[1:12])]
 # F_{L|q_0}(l) = C_{L|q_0}(F_L(l)|F_Q(q_0))
 # ============================================================
 
+# ---- 2.probability distribution -----
+# f_Q(q)： PDF of Q (Discharge)
+# f_L(l)： PDF of L (Suspended.Load)
+# F_Q(q)： CDF of Q (Discharge)
+# F_L(l)： CDF of L (Suspended.Load)
+f_Q <- get(paste0("d",margin.dist[1]))(MD.anal$Discharge, margin.par[margin.num[1],1], margin.par[margin.num[1],2])
+f_L <- get(paste0("d",margin.dist[2]))(MD.anal$Suspended.Load, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+F_Q <- get(paste0("p",margin.dist[1]))(MD.anal$Discharge, margin.par[margin.num[1],1], margin.par[margin.num[1],2])
+F_L <- get(paste0("p",margin.dist[2]))(MD.anal$Suspended.Load, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+# f_Q
+setwd(paste0("F:/R_output/",station,"/parametric method")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站流量之機率密度函數.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+ggplot()+
+  geom_line(aes(x=MD.anal$Discharge,y=f_Q))+
+  labs(x="流量Q (cms)",y="PDF函數值") + # 座標軸名稱
+  ggtitle(paste0(station_ch,"測站流量之機率密度函數")) +
+  theme_bw() + # 白底
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+  theme(text=element_text(size=30))  # 字體大小
+dev.off()
+# f_L
+setwd(paste0("F:/R_output/",station,"/parametric method")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站輸砂量之機率密度函數.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+ggplot()+
+  geom_line(aes(x=MD.anal$Suspended.Load,y=f_L))+
+  labs(x="輸砂量Qs (公噸)",y="PDF函數值") + # 座標軸名稱
+  xlim(0,2000) +
+  ggtitle(paste0(station_ch,"測站輸砂量之機率密度函數")) +
+  theme_bw() + # 白底
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+  theme(text=element_text(size=30))  # 字體大小
+dev.off()
+# F_Q
+setwd(paste0("F:/R_output/",station,"/parametric method")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站流量之累積分布函數.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+ggplot()+
+  geom_line(aes(x=MD.anal$Discharge,y=F_Q))+
+  labs(x="流量Q (cms)",y="CDF機率值") + # 座標軸名稱
+  ggtitle(paste0(station_ch,"測站流量之累積分布函數")) +
+  theme_bw() + # 白底
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+  theme(text=element_text(size=30))  # 字體大小
+dev.off()
+# F_L
+setwd(paste0("F:/R_output/",station,"/parametric method")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站輸砂量之累積分布函數.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+ggplot()+
+  geom_line(aes(x=MD.anal$Suspended.Load,y=F_L))+
+  labs(x="輸砂量Qs (公噸)",y="CDF機率值") + # 座標軸名稱
+  #xlim(0,2000) +
+  ggtitle(paste0(station_ch,"測站輸砂量之累積分布函數")) +
+  theme_bw() + # 白底
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+  theme(text=element_text(size=30))  # 字體大小
+dev.off()
 # ---- 3. joint probability distribution ----
 # joint CDF of L and Q：
 # F_{L,Q}(l,q) = C(F_L(l),F_Q(q)), C：copula
@@ -315,109 +415,152 @@ mymvdc <- mvdc(copula.func,margin.dist,
                paramMargins =list(list(margin.par[margin.num[1],1], margin.par[margin.num[1],2]),
                                   list(margin.par[margin.num[2],3], margin.par[margin.num[2],4])))
 set.seed(100)
-n <- 5000
+#n <- 5000
 # v <- rMvdc(n, mymvdc) # 隨機生成5000點的模型
 v <- as.matrix(MD.anal) # 率定資料
-# Compute the density
 
+# Compute the density
 mvd.pdf <- dMvdc(v, mymvdc)
+
 # Compute the CDF
 mvd.cdf <- pMvdc(v, mymvdc)
-which.max(mvd.cdf)
+
 # plot joint PDF and joint CDF
+
+setwd(paste0("F:/R_output/",station,"/parametric method")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站 mvd 散佈圖.png"),width = 1250, height = 700, units = "px", pointsize = 12)
 par(mfrow = c(1, 2))
 scatterplot3d(v[,1],v[,2], mvd.pdf, color="red", main= paste0("joint PDF 散佈圖"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
 scatterplot3d(v[,1],v[,2], mvd.cdf, color="red", main=paste0("joint CDF 散佈圖"), xlab = "Q", ylab="Qs", zlab="pMvdc",pch=".")
+dev.off()
+
+setwd(paste0("F:/R_output/",station,"/parametric method")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站joint PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+par(mfrow = c(1, 2))
 persp(mymvdc, dMvdc, xlim = c(0, max(MD.anal[,1])), ylim=c(0, max(MD.anal[,2])), main = paste0("joint PDF 透視圖"), xlab = "Q", ylab="Qs")
 contour(mymvdc, dMvdc, xlim = c(0, max(MD.anal[,1])), ylim=c(0, max(MD.anal[,2])), main =  paste0("joint PDF 等高線圖"), xlab = "Q", ylab="Qs")
+dev.off()
+
+setwd(paste0("F:/R_output/",station,"/parametric method")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站joint CDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+par(mfrow = c(1, 2))
 persp(mymvdc, pMvdc, xlim = c(0, max(MD.anal[,1])), ylim=c(0, max(MD.anal[,2])), main =  paste0("joint CDF 透視圖"),xlab = "Q", ylab="Qs")
 contour(mymvdc, pMvdc, xlim = c(0, max(MD.anal[,1])), ylim=c(0, max(MD.anal[,2])), main =  paste0("joint CDF 等高線圖"), xlab = "Q", ylab="Qs")
-
+dev.off()
 # ---- 4. conditional probability distribution ----
 
 ## conditional pdf of L given q0
 ## conditional PDF of L given the observation discharge q_0：
 ## f_{L|q_0}(l) = f_L(l)*c(F_L(l),F_Q(q))
-givenQ <- 30 # 設定條件流量大小：
-f_Q <- get(paste0("d",margin.dist[2]))(givenQ, margin.par[margin.num[1],1], margin.par[margin.num[1],2])
-con.pdf <- mvd.pdf/f_Q # f_{L|q_0}(l) = f_{L,Q}(l,q_0) / f_Q(q_0)
-which.max(con.pdf)
 
-#plot(all.Qs,kde.Qs(all.Qs),type="l",main="margin of L")
-plot(v[,2], con.pdf,main="conditional pdf of L given the q")
-plot(v[,2], con.pdf, xlim=c(0,1000),type="p",main="conditional pdf of L given the q")
+givenQ <- 20 # 設定條件流量大小：
+copula.pdf <- function(u,v,theta){
+  exp(-((-log(u))^theta*(-log(v))^theta)^(1/theta)) * 
+  ((-log(u))*(-log(v)))^(theta-1)/(u*v) *
+  ((-log(u))^(theta)+(-log(v))^(theta))^(2/theta-2) *
+  ((theta-1)*((-log(u))^(theta)+(-log(v))^(theta))^(-1/theta)+1)
+}
 
-## conditional CDF of L given the q0
+## caculate conditional PDF of L given the q0
+F_Q <- get(paste0("p",margin.dist[1]))(givenQ, margin.par[margin.num[1],1], margin.par[margin.num[1],2])
+F_L <- get(paste0("p",margin.dist[2]))(MD.anal$Suspended.Load, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+f_L <- get(paste0("d",margin.dist[2]))(MD.anal$Suspended.Load, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+con.pdf <-copula.pdf(F_Q,F_L,fitcopula.par$copula.parameter)*f_L
+
+# plot conditional PDF of L given the q0
+setwd(paste0("F:/R_output/",station,"/parametric method")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站conditional PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+ggplot()+
+  geom_line(aes(x=MD.anal$Suspended.Load,y=con.pdf)) +
+  labs(x="輸砂量Qs (公噸)",y="PDF函數值") + # 座標軸名稱
+  #xlim(0,2000) +
+  ggtitle(paste0(station_ch,"測站Q=",givenQ,"cms之條件機率密度函數")) +
+  theme_bw() + # 白底
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+  theme(text=element_text(size=30))  # 字體大小
+dev.off()
+
+## caculate conditional CDF of L given the q0
 F_Q <- get(paste0("p",margin.dist[1]))(givenQ, margin.par[margin.num[1],1], margin.par[margin.num[1],2])
 F_L <- get(paste0("p",margin.dist[2]))(MD.anal$Suspended.Load, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
 con.cdf <- cCopula(cbind(F_Q,F_L), copula = copula.func,indices = 1:dim(copula.func), inverse = F)
+
+# plot conditional CDF of L given the q0
+setwd(paste0("F:/R_output/",station,"/parametric method")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站conditional CDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
 ggplot()+
-  geom_line(aes(x=MD.anal$Suspended.Load,y=con.cdf[,2]))
-plot(MD.anal$Suspended.Load,con.cdf[,2], type="", main="conditional cdf of L given the q")
-line(MD.anal$Suspended.Load,uv[,2])
-plot(MD.anal$Suspended.Load,con.cdf[,2], xlim=c(0,1000),type="l", main="conditional cdf of L given the q")
-#colnames(con.cdf) <- c("qp","lp") 
-#subset(con.cdf,lp>="4.9")
+  geom_line(aes(x=MD.anal$Suspended.Load,y=con.cdf[,2])) +
+  labs(x="輸砂量Qs (公噸)",y="CDF累積機率值") + # 座標軸名稱
+  ggtitle(paste0(station_ch,"測站Q=",givenQ,"cms之條件累積分布函數")) +
+  #xlim(0,1000)+
+  theme_bw() + # 白底
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+  theme(text=element_text(size=30))  # 字體大小
+dev.off()
 
 #  =========== 輸砂量推估 ============
 # 1. mode(中位數)
 # 2. (Peng et al. 2020)
 # 3. (Bezak et al. 2017)
 # ====================================
-# 1. mode(中位數)
-max(con.pdf) # 最大PDF值
-all.Qs[which.max(con.pdf)] # PDF最大值所推估的輸砂量
-# 2.(Peng et al. 2020)
-r <- runif(1)
-con.cdf1 <- cCopula(cbind(F_Q,r), copula = copula.func,indices = 2, inverse = T)
+MD.onlyNA <- MD[complete.cases(MD)==F, ]
+givenQ.table <- MD.onlyNA$Discharge
+estimate.SSL <- c()
+for (q in 1:length(givenQ.table)){
+  # 1. mode(眾數)
+  F_Q <- get(paste0("p",margin.dist[1]))(givenQ.table[q], margin.par[margin.num[1],1], margin.par[margin.num[1],2])
+  F_L <- get(paste0("p",margin.dist[2]))(MD.anal$Suspended.Load, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+  f_L <- get(paste0("d",margin.dist[2]))(MD.anal$Suspended.Load, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+  con.pdf <-copula.pdf(F_Q,F_L,fitcopula.par$copula.parameter)*f_L
+  max(con.pdf) # 最大PDF值
+  est.L1 <- MD.anal$Suspended.Load[which.max(con.pdf)] # PDF最大值所推估的輸砂量
+  
+  # 2.(Peng et al. 2020)
+  set.seed(100)
+  r2 <- runif(1) #隨機產生1個均勻分布
+  F_Q <- get(paste0("p",margin.dist[1]))(givenQ.table[q], margin.par[margin.num[1],1], margin.par[margin.num[1],2])
+  con.cdf2 <- cCopula(cbind(F_Q,r2), copula = copula.func,indices = 2, inverse = T)
+  est.L2 <- get(paste0("q",margin.dist[2]))(con.cdf2,margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+  
+  # 3.(Bezak et al. 2017)
+  set.seed(100)
+  r3 <- runif(1000) #隨機產生1000個均勻分布
+  F_Q <- get(paste0("p",margin.dist[1]))(givenQ.table[q], margin.par[margin.num[1],1], margin.par[margin.num[1],2])
+  con.cdf3 <- cCopula(cbind(F_Q,r3), copula = copula.func,indices = 2, inverse = T)
+  est.L3 <- get(paste0("q",margin.dist[2]))(con.cdf3,margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+  med.est.L3 <- median(est.L3) # 取中位數
+  each.est <- cbind(est.L1,est.L2,med.est.L3)
+  estimate.SSL <- rbind(estimate.SSL,each.est)
+  
+  print(paste0("第",q,"個完成"))
+}
+colnames(estimate.SSL) <- c("est.SSL1","est.SSL2","est.SSL3")
+SSL.result <- cbind(MD.onlyNA[,1:4],estimate.SSL)
+est.table <- left_join(rm.ob.data,SSL.result)
+file <- paste("F:/R_output/",station,"/parametric method/",
+              year[1],"到", year[y],station_ch,"驗證(30%觀測資料).csv", sep="") #存檔路徑
+write.csv(est.table,file)
 
-est.L <- qlnorm(con.cdf1,margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+rm.est.table <- est.table[complete.cases(est.table),]
+rmse1 <- rmse(rm.est.table$Suspended.Load, rm.est.table$est.SSL1)
+rmse2 <- rmse(rm.est.table$Suspended.Load, rm.est.table$est.SSL2)
+rmse3 <- rmse(rm.est.table$Suspended.Load, rm.est.table$est.SSL3)
+rmse.table <- cbind(rmse1,rmse2,rmse3)
+file <- paste("F:/R_output/",station,"/parametric method/",
+              year[1],"到", year[y],station_ch,"驗證_誤差指標(30%觀測資料).csv", sep="") #存檔路徑
+write.csv(rmse.table,file)
 
-# ---------
-### Evaluation of and sampling from C_{j|1,..,j-1}(.|u_1,..,u_{j-1})
+setwd(paste0("F:/R_output/",station,"/parametric method")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站驗證(3種推估方法).png"),width = 1250, height = 700, units = "px", pointsize = 12)
+ggplot(rm.est.table)+
+  geom_line(aes(x=Discharge,y=Suspended.Load,color="真實值"))+
+  geom_line(aes(x=Discharge,y=est.SSL1,color="推估值1"))+
+  geom_line(aes(x=Discharge,y=est.SSL2,color="推估值2"))+
+  geom_line(aes(x=Discharge,y=est.SSL3,color="推估值3"))+
+  scale_color_discrete(name="圖例")+  #圖例名稱
+  ggtitle(paste0(year[1],"到",year[y],"年",station_ch,"測站驗證(30%觀測資料)"))+
+  theme(text=element_text(size=30))  # 字體大小
+dev.off()
 
-## Define the copula
-nu <- 3.5
-theta <- iTau(tCopula(df = nu), tau = 0.5)
-tc <- tCopula(theta, df = nu)
-## Evaluate the df C(.|u_1) at u for several u_1
-u <- c(0.05, 0.3, 0.7, 0.95)
-u2 <- seq(0, 1, by = 0.01)
-ccop <- sapply(u, function(u.)
-  cCopula(cbind(u., u2), copula = tc, indices = 2))
-## Evaluate the function C(u_2|.) at u for several u_2
-u1 <- seq(0, 1, by = 0.01)
-ccop. <- sapply(u, function(u.)
-  cCopula(cbind(u1, u.), copula = tc, indices = 2))
-
-matplot(ccop, type = "l", lty = 1, lwd = 2,
-        col = (cols <- seq_len(ncol(ccop))), ylab = "",
-        xlab = substitute(C["2|1"](u[2]~"|"~u[1])~~"as a function of"~
-                            u[2]~"for a"~{C^italic(t)}[list(rho,nu)]~"copula",
-                          list(nu = nu)))
-legend("bottomright", bty = "n", lwd = 2, col = cols,
-       legend = as.expression(lapply(seq_along(u), function(j)
-         substitute(u[1] == u1, list(u1 = u[j])))))
-
-matplot(ccop., type = "l", lty = 1, lwd = 2,
-        col = (cols <- seq_len(ncol(ccop.))), ylab = "",
-        xlab = substitute(C["2|1"](u[2]~"|"~u[1])~~"as a function of"~
-                            u[1]~"for a"~{C^italic(t)}[list(rho,nu)]~"copula",
-                          list(nu = nu)))
-legend("center", bty = "n", lwd = 2, col = cols,
-       legend = as.expression(lapply(seq_along(u), function(j)
-         substitute(u[2] == u2, list(u2 = u[j])))))
-
-## Sample from C_{2|1}(.|u_1)
-set.seed(271)
-u2 <- runif(1000)
-## Small u_1
-u1 <- 0.05
-U2 <- cCopula(cbind(u1, u2), copula = tc, indices = 2, inverse = TRUE)
-## Large u_1
-u1. <- 0.95
-U2. <- cCopula(cbind(u1., u2), copula = tc, indices = 2, inverse = TRUE)
-ggplot()+
-  geom_line(aes(x,y=U2))
-plot(U2, ylab = substitute(U[2]~"|"~U[1]==u, list(u = u1)))
-plot(U2., ylab = substitute(U[2]~"|"~U[1]==u, list(u = u1.)))
