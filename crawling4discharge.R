@@ -8,11 +8,24 @@ library(rvest)
 library(magrittr)
 library(jsonlite)
 output <- "y"
+# ---- 測站資料放置區 ----
+#station <- c("CHUNYUN BRIDGE")
+#station.num <- c("2560H017") #蘭陽溪-家源橋
+#year <- c(1974:2000) # 1974才開始有SSL的紀錄
 #
+#station <- c("CHUNYUN BRIDGE")
+#station.num <- c("1510H057") #濁水溪-彰雲橋
+#year <- c(1987:2000) # 1987才開始有SSL的紀錄
+#
+#station <- c("NEI-MAO-PU")
+#station.num <- c("1510H049") #濁水溪-內茅埔
+#year <- c(1972:2000) # 1972才開始有SSL的紀錄
 #----起始資料
 #測站編號
-station <- c("1510H057") #濁水溪-彰雲橋
-year <- c(1985:2000) 
+
+station <- c("NEI-MAO-PU")
+station.num <- c("1510H049") #濁水溪-內茅埔
+year <- c(1972:2000) 
 #
 #----
 # 先建立錯誤函數：
@@ -41,10 +54,10 @@ daily.rec.err.func <- function(x){
 #----
 sum.data <- c()
 # 抓取每年資料
-for(s in c(1:length(station))){
+for(s in c(1:length(station.num))){
   
   for(yr in year){ #資料年分：
-    url <- paste0("https://gweb.wra.gov.tw/wrhygis/ebooks/ebook/ebook/hyb", yr, "/", station[s], ".HTM")
+    url <- paste0("https://gweb.wra.gov.tw/wrhygis/ebooks/ebook/ebook/hyb", yr, "/", station.num[s], ".HTM")
     get.rec.err.func(
       data <- read_html(url) %>% html_nodes(xpath = "//td") %>% html_text()
     )
@@ -72,6 +85,6 @@ for (i in 1:length(year)){
                            "七月","八月","九月","十月","十一","十二月")
   #輸出csv
   if(output == "y"){
-    write.csv(year.data, file = paste0("F:/R_output/crawling/CHUNYUN BRIDGE/discharge/",year[i], ".csv"))}
+    write.csv(year.data, file = paste0("F:/R_output/crawling/",station,"/discharge/",year[i], ".csv"))}
 }
 
