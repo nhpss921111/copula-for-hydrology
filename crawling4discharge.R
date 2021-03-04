@@ -9,7 +9,7 @@ library(magrittr)
 library(jsonlite)
 output <- "y"
 # ---- 測站資料放置區 ----
-#station <- c("CHUNYUN BRIDGE")
+#station <- c("CHIA-YUANG")
 #station.num <- c("2560H017") #蘭陽溪-家源橋
 #year <- c(1974:2000) # 1974才開始有SSL的紀錄
 #
