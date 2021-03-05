@@ -24,7 +24,6 @@ library(locfit) # local polynomial estimation
 library(nls2)
 library(kdensity)
 library(spatstat)
-library(aomisc)
 library(Metrics) # 評估指標
 library(ggforce)
 # ===========
@@ -32,13 +31,13 @@ library(ggforce)
 # 彰雲橋CHUNYUN BRIDGE year <- c(1987:2019)
 # 內茅埔(NEI-MAO-PU)：year <- c(1972:2001,2003:2019)
 # ===========
-station <- c("NEI-MAO-PU") # 測站名稱
-station_ch <-c("內茅埔")
+station <- c("CHUNYUN BRIDGE") # 測站名稱
+station_ch <-c("彰雲橋")
 group.number <- c(9) # 分組的組數
 log.group.number <- c(9) # 分組的組數
 set.seed(101)
 perc.mis <- 0.3 # 多少%的資料當成NA
-year <- c(1972:2001,2003:2019) # 年分
+year <- c(1987:2019) # 年分
 MD.input <- c(paste0(year,"QandQs.csv"))
 output <- c(paste0(year,"imp.csv"))
 ob.data <- c()
@@ -921,12 +920,14 @@ setwd(paste0("F:/R_output/",station,"/parametric&coimp")) # 請修改儲存路�
 png(paste0(year[1],"到",year[y],"年",station_ch,"測站驗證(6種推估方法).png"),width = 1250, height = 700, units = "px", pointsize = 12)
 ggplot(validation.table)+
   geom_point(aes(x=Discharge,y=Suspended.Load,color="真實值"),size=5)+
-  geom_point(aes(x=Discharge,y=est.SSL1,color="推估值1"),size=3)+
-  geom_point(aes(x=Discharge,y=est.SSL2,color="推估值2"),size=3)+
-  geom_point(aes(x=Discharge,y=est.SSL3,color="推估值3"),size=3)+
-  geom_point(aes(x=Discharge,y=est.SSL4,color="推估值4"),size=3)+
-  geom_point(aes(x=Discharge,y=est.SSL5,color="推估值5"),size=3)+
-  geom_point(aes(x=Discharge,y=est.SSL6,color="推估值6"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL1,color="率定曲線"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL2,color="CDF取1點"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL3,color="CDF取100點之中位數"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL4,color="PDF眾數"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL5,color="HitorMiss"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL6,color="log(HitorMiss)"),size=3)+
+  # xlim(0,200)+
+  # ylim(0,10000)+
   labs(x="流量Q(cms)",y="輸砂量Qs (公噸)") + # 座標軸名稱
   scale_color_discrete(name="圖例")+  #圖例名稱
   ggtitle(paste0(year[1],"到",year[y],"年",station_ch,"測站驗證(30%觀測資料)"))+
