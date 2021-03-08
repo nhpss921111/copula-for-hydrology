@@ -1,7 +1,7 @@
 # 邊際分布：parametric method
 # copula函數：IFM method
 # 開始撰寫日期：2020/02/16
-# 完成撰寫日期：2021/03/03
+# 完成撰寫日期：2021/03/08
 rm(list=ls())
 library(copula)
 library(CoImp)
@@ -30,14 +30,15 @@ library(ggforce)
 # 家源橋CHIA-YUANG year <- c(1974:2009,2012:2019)
 # 彰雲橋CHUNYUN BRIDGE year <- c(1987:2019)
 # 內茅埔(NEI-MAO-PU)：year <- c(1972:2001,2003:2019)
+# 仁壽橋(JEN-SHOU BRIDGE)：year <- c(1960:2019)
 # ===========
-station <- c("CHUNYUN BRIDGE") # 測站名稱
-station_ch <-c("彰雲橋")
+station <- c("JEN-SHOU BRIDGE") # 測站名稱
+station_ch <-c("仁壽橋")
 group.number <- c(9) # 分組的組數
 log.group.number <- c(9) # 分組的組數
 set.seed(101)
 perc.mis <- 0.3 # 多少%的資料當成NA
-year <- c(1987:2019) # 年分
+year <- c(1960:2019) # 年分
 MD.input <- c(paste0(year,"QandQs.csv"))
 output <- c(paste0(year,"imp.csv"))
 ob.data <- c()
@@ -90,6 +91,7 @@ for( y in 1:length(year)){
   data <- data[,-1]
   ob.data <- rbind(ob.data,data)
 }
+ob.data <- unique(ob.data) # 移除重複的觀測資料
 ob.data <- subset(ob.data,ob.data$Discharge>0) # 把流量為0(無觀測資料)刪除
 ob.data[ob.data==0] <- NA #將輸砂量0的資料當成NA
 log.data <- cbind(ob.data[,1:3],log10(ob.data[,4:5]))
@@ -621,7 +623,7 @@ copula.pdf <- function(u,v,theta){
   ((theta-1)*((-log(u))^(theta)+(-log(v))^(theta))^(-1/theta)+1)
 }
 
-givenQ <- c(600) # 設定條件流量大小：
+givenQ <- c(10) # 設定條件流量大小：
 
 small.Qs <- seq(from=0.01,to=10,by=0.01)
 all.Qs <- append(small.Qs,c(11:1000000))
@@ -637,7 +639,7 @@ png(paste0(year[1],"到",year[y],"年",station_ch,"測站Q=",givenQ,"cms之condi
 ggplot()+
   geom_line(aes(x=all.Qs,y=con.pdf)) +
   labs(x="輸砂量Qs (公噸)",y="PDF函數值") + # 座標軸名稱
-  xlim(0,1000000) +
+  xlim(0,10000) +
   ggtitle(paste0(station_ch,"測站Q=",givenQ,"cms之條件機率密度函數")) +
   theme_bw() + # 白底
   theme(panel.grid.major = element_blank()) + # 隱藏主要格線
@@ -657,7 +659,7 @@ ggplot()+
   geom_line(aes(x=all.Qs,y=con.cdf[,2])) +
   labs(x="輸砂量Qs (公噸)",y="CDF累積機率值") + # 座標軸名稱
   ggtitle(paste0(station_ch,"測站Q=",givenQ,"cms之條件累積分布函數")) +
-  xlim(0,1000000)+
+  xlim(0,10000)+
   theme_bw() + # 白底
   theme(panel.grid.major = element_blank()) + # 隱藏主要格線
   theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
