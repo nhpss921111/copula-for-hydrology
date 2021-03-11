@@ -26,19 +26,23 @@ library(kdensity)
 library(spatstat)
 library(Metrics) # 評估指標
 library(ggforce)
+library(numDeriv)
 # ===========
-# 家源橋CHIA-YUANG year <- c(1974:2009,2012:2019)
+# 家源橋CHIA-YUANG year <- c(1974:2019)
 # 彰雲橋CHUNYUN BRIDGE year <- c(1987:2019)
 # 內茅埔(NEI-MAO-PU)：year <- c(1972:2001,2003:2019)
 # 仁壽橋(JEN-SHOU BRIDGE)：year <- c(1960:2019)
+# 六龜("LIU-KWEI");year <- c(1982:2009,2011:2019) 
 # ===========
-station <- c("JEN-SHOU BRIDGE") # 測站名稱
-station_ch <-c("仁壽橋")
+station <- c("CHIA-YUANG") # 測站名稱
+station_ch <-c("家源橋")
+year <- c(1974:2019) # 年分
+
 group.number <- c(9) # 分組的組數
 log.group.number <- c(9) # 分組的組數
-set.seed(101)
+set.seed(100)
 perc.mis <- 0.3 # 多少%的資料當成NA
-year <- c(1960:2019) # 年分
+
 MD.input <- c(paste0(year,"QandQs.csv"))
 output <- c(paste0(year,"imp.csv"))
 ob.data <- c()
@@ -402,11 +406,6 @@ for(dist in c(1:length(candidate.copula))){
   print(paste0(candidate.copula[dist],"copula"))
   copula.char <- c(paste0(candidate.copula[dist],"Copula"))
   copula.func <- get(copula.char)(2) # initial theta = 2
-  # mvd2 <- mvdc(copula.func, margin.dist,
-  #             paramMargins = list(list(margin.par[margin.num[1],1], margin.par[margin.num[1],2]),
-  #                                 list(margin.par[margin.num[2],3], margin.par[margin.num[2],4])))
-  # copula參數估計
-  # loglikMvdc(c(1,1,1,1), MD.anal, mvd2)
   # fitMvdc(MD.anal,mvd2,start=)
   fit.tau <- fitCopula(copula.func, data.probs, method="itau")
   fit.rho <- fitCopula(copula.func, data.probs, method="irho")
@@ -614,73 +613,176 @@ dev.off()
 ## conditional PDF of L given the observation discharge q_0：
 ## f_{L|q_0}(l) = f_L(l)*c(F_L(l),F_Q(q))
 
-
-
 copula.pdf <- function(u,v,theta){
-  exp(-((-log(u))^theta*(-log(v))^theta)^(1/theta)) * 
-  ((-log(u))*(-log(v)))^(theta-1)/(u*v) *
-  ((-log(u))^(theta)+(-log(v))^(theta))^(2/theta-2) *
-  ((theta-1)*((-log(u))^(theta)+(-log(v))^(theta))^(-1/theta)+1)
+  exp(-((-log(u))^theta+(-log(v))^theta)^(1/theta)) * 
+  (((-log(u))*(-log(v)))^(theta-1))/(u*v) *
+  ((-log(u))^theta+(-log(v))^theta)^(2/theta-2) *
+  ((theta-1)*((-log(u))^theta+(-log(v))^theta)^(-1/theta)+1)
 }
 
-givenQ <- c(10) # 設定條件流量大小：
+# fun <- expression(exp(-((-log(u))^theta+(-log(v))^theta)^(1/theta)))
+# D(D(fun,"v"),"u")
+# copula.pdf2 <- function(u,v,theta){
+#   exp(-((-log(u))^theta + (-log(v))^theta)^(1/theta)) * (((-log(u))^theta + 
+#                                                             (-log(v))^theta)^((1/theta) - 1) * ((1/theta) * ((-log(u))^(theta - 
+#                                                                                                                           1) * (theta * (1/u))))) * (((-log(u))^theta + (-log(v))^theta)^((1/theta) - 
+#                                                                                                                                                                                             1) * ((1/theta) * ((-log(v))^(theta - 1) * (theta * (1/v))))) - 
+#     exp(-((-log(u))^theta + (-log(v))^theta)^(1/theta)) * (((-log(u))^theta + 
+#                                                               (-log(v))^theta)^(((1/theta) - 1) - 1) * (((1/theta) - 
+#                                                                                                            1) * ((-log(u))^(theta - 1) * (theta * (1/u)))) * ((1/theta) * 
+#                                                                                                                                                                 ((-log(v))^(theta - 1) * (theta * (1/v)))))
+# }
+# ---- 單一流量組 ----
+givenQ <- c(100) # 設定條件流量大小：
+small.Qs <- seq(from=1,to=99999,by=1)
+middle.Qs <- append(small.Qs,seq(from=100000,to=9999999,by=10))
+big.Qs <- append(middle.Qs,seq(from=1000000,to=99999999,by=100))
+all.Qs <- append(big.Qs,seq(from=1000000,to=10000000,by=1000))
 
-small.Qs <- seq(from=0.01,to=10,by=0.01)
-all.Qs <- append(small.Qs,c(11:1000000))
 ## caculate conditional PDF of L given the q0
 F_Q <- get(paste0("p",margin.dist[1]))(givenQ, margin.par[margin.num[1],1], margin.par[margin.num[1],2])
 F_L <- get(paste0("p",margin.dist[2]))(all.Qs, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
 f_L <- get(paste0("d",margin.dist[2]))(all.Qs, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
 con.pdf <-copula.pdf(F_Q,F_L,fitcopula.par$copula.parameter)*f_L
 
+
 # plot conditional PDF of L given the q0
+
 setwd(paste0("F:/R_output/",station,"/parametric&coimp")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站Q=",givenQ,"cms之conditional PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
-ggplot()+
-  geom_line(aes(x=all.Qs,y=con.pdf)) +
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站Q=",givenQ,"cms下conditional PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+Con.pdf <- ggplot()+
+  geom_line(aes(x=all.Qs,y=con.pdf),size=1.5)+
   labs(x="輸砂量Qs (公噸)",y="PDF函數值") + # 座標軸名稱
-  xlim(0,10000) +
-  ggtitle(paste0(station_ch,"測站Q=",givenQ,"cms之條件機率密度函數")) +
+  #geom_vline(xintercept = 1083)+
+  #geom_vline(xintercept = 8283)+
+  xlim(0,1000000) +
+  ggtitle(paste0(station_ch,"測站Q=",givenQ,"cms下條件機率密度函數")) +
   theme_bw() + # 白底
   theme(panel.grid.major = element_blank()) + # 隱藏主要格線
   theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
   theme(text=element_text(size=30))  # 字體大小
+print(Con.pdf)
 dev.off()
 
 ## caculate conditional CDF of L given the q0
 F_Q <- get(paste0("p",margin.dist[1]))(givenQ, margin.par[margin.num[1],1], margin.par[margin.num[1],2])
 F_L <- get(paste0("p",margin.dist[2]))(all.Qs, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
-con.cdf <- cCopula(cbind(F_Q,F_L), copula = copula.func,indices = 1:dim(copula.func), inverse = F)
+con.cdf <- cCopula(cbind(F_Q,F_L), copula = copula.func,indices = dim(copula.func), inverse = F)
 
-# plot conditional CDF of L given the q0
+# plot conditional PDF of L given the q0
 setwd(paste0("F:/R_output/",station,"/parametric&coimp")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站Q=",givenQ,"cms之conditional CDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
-ggplot()+
-  geom_line(aes(x=all.Qs,y=con.cdf[,2])) +
-  labs(x="輸砂量Qs (公噸)",y="CDF累積機率值") + # 座標軸名稱
-  ggtitle(paste0(station_ch,"測站Q=",givenQ,"cms之條件累積分布函數")) +
-  xlim(0,10000)+
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站Q=",givenQ,"cms下conditional PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+Con.pdf <- ggplot()+
+  geom_line(aes(x=all.Qs,y=con.pdf),size=1.5)+
+  labs(x="輸砂量Qs (公噸)",y="PDF函數值") + # 座標軸名稱
+  xlim(0,100000) +
+  ggtitle(paste0(station_ch,"測站Q=",givenQ,"cms下條件機率密度函數")) +
   theme_bw() + # 白底
   theme(panel.grid.major = element_blank()) + # 隱藏主要格線
   theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
   theme(text=element_text(size=30))  # 字體大小
+print(Con.pdf)
+dev.off()
+# plot conditional CDF of L given the q0
+setwd(paste0("F:/R_output/",station,"/parametric&coimp")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站Q=",givenQ,"cms下conditional CDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+Con.cdf <- ggplot()+
+  geom_line(aes(x=all.Qs,y=con.cdf),size=1.5) +
+  labs(x="輸砂量Qs (公噸)",y="CDF累積機率值") + # 座標軸名稱
+  xlim(0,200000)+
+  ggtitle(paste0(station_ch,"測站Q=",givenQ,"cms下條件累積分布函數")) +
+  scale_color_discrete(name="圖例")+
+  theme_bw() + # 白底
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+  theme(text=element_text(size=30))  # 字體大小
+print(Con.cdf)
 dev.off()
 
+
+# ------ 比較多個流量組 ------
+givenQ <- c(10,20,50,75,100) # 設定條件流量大小：
+
+small.Qs <- seq(from=1,to=99999,by=1)
+middle.Qs <- append(small.Qs,seq(from=100000,to=9999999,by=10))
+big.Qs <- append(middle.Qs,seq(from=1000000,to=99999999,by=100))
+all.Qs <- append(big.Qs,seq(from=1000000,to=10000000,by=1000))
+con.pdf.table <- c()
+con.cdf.table <- c()
+for ( i in 1:length(givenQ)){
+  ## caculate conditional PDF of L given the q0
+  F_Q <- get(paste0("p",margin.dist[1]))(givenQ[i], margin.par[margin.num[1],1], margin.par[margin.num[1],2])
+  F_L <- get(paste0("p",margin.dist[2]))(all.Qs, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+  f_L <- get(paste0("d",margin.dist[2]))(all.Qs, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+  con.pdf <-copula.pdf(F_Q,F_L,fitcopula.par$copula.parameter)*f_L
+  con.pdf.table <- cbind(con.pdf.table,con.pdf)
+
+  ## caculate conditional CDF of L given the q0
+  F_Q <- get(paste0("p",margin.dist[1]))(givenQ[i], margin.par[margin.num[1],1], margin.par[margin.num[1],2])
+  F_L <- get(paste0("p",margin.dist[2]))(all.Qs, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+  con.cdf <- cCopula(cbind(F_Q,F_L), copula = copula.func,indices = dim(copula.func), inverse = F)
+  con.cdf.table <- cbind(con.cdf.table,con.cdf)
+}
+
+# plot conditional PDF of L given the q0
+setwd(paste0("F:/R_output/",station,"/parametric&coimp")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站不同流量情況下conditional PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+Con.pdf <- ggplot()+
+  geom_line(aes(x=all.Qs,y=con.pdf.table[,1],color=paste0(givenQ[1],"cms")),size=1.5) +
+  geom_line(aes(x=all.Qs,y=con.pdf.table[,2],color=paste0(givenQ[2],"cms")),size=1.5) +
+  geom_line(aes(x=all.Qs,y=con.pdf.table[,3],color=paste0(givenQ[3],"cms")),size=1.5) +
+  geom_line(aes(x=all.Qs,y=con.pdf.table[,4],color=paste0(givenQ[4],"cms")),size=1.5) +
+  geom_line(aes(x=all.Qs,y=con.pdf.table[,5],color=paste0(givenQ[5],"cms")),size=1.5) +
+  labs(x="輸砂量Qs (公噸)",y="PDF函數值") + # 座標軸名稱
+  xlim(1,5000) +
+  ggtitle(paste0(station_ch,"測站不同流量情況下條件機率密度函數")) +
+  scale_color_discrete(name="圖例")+  #圖例名稱
+  theme_bw() + # 白底
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+  theme(text=element_text(size=30))  # 字體大小
+print(Con.pdf)
+dev.off()
+
+# plot conditional CDF of L given the q0
+setwd(paste0("F:/R_output/",station,"/parametric&coimp")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站不同流量情況下conditional CDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+Con.cdf <- ggplot()+
+  geom_line(aes(x=all.Qs,y=con.cdf.table[,1],color=paste0(givenQ[1],"cms")),size=1.5) +
+  geom_line(aes(x=all.Qs,y=con.cdf.table[,2],color=paste0(givenQ[2],"cms")),size=1.5) +
+  geom_line(aes(x=all.Qs,y=con.cdf.table[,3],color=paste0(givenQ[3],"cms")),size=1.5) +
+  geom_line(aes(x=all.Qs,y=con.cdf.table[,4],color=paste0(givenQ[4],"cms")),size=1.5) +
+  geom_line(aes(x=all.Qs,y=con.cdf.table[,5],color=paste0(givenQ[5],"cms")),size=1.5) +
+  labs(x="輸砂量Qs (公噸)",y="CDF累積機率值") + # 座標軸名稱
+  xlim(0,200000)+
+  ggtitle(paste0(station_ch,"測站不同流量情況下條件累積分布函數")) +
+  scale_color_discrete(name="圖例")+
+  theme_bw() + # 白底
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+  theme(text=element_text(size=30))  # 字體大小
+print(Con.cdf)
+dev.off()
 
 
 #  =========== 輸砂量推估 ============
 # 1. mode(中位數)
 # 2. (Peng et al. 2020)
 # 3. (Bezak et al. 2017)
-# 4. Suspended load rating curve
+# 4. Suspended load rating curve(非線性最小平方法)
 # 5. (Di Lascio et al. 2015)原始尺度
 # 6. (Di Lascio et al. 2015)對數尺度
 # ====================================
+print("開始推估輸砂量")
 MD.onlyNA <- MD[complete.cases(MD)==F, ]
 MD.onlyNA.rmNASSL <- MD.onlyNA[,-5]
 ori.data.vad <- left_join(MD.onlyNA.rmNASSL,rm.ob.data)
 givenQ.table <- MD.onlyNA$Discharge
 estimate.SSL <- c()
+small.Qs <- seq(from=1,to=99999,by=1)
+middle.Qs <- append(small.Qs,seq(from=100000,to=9999999,by=10))
+big.Qs <- append(middle.Qs,seq(from=1000000,to=99999999,by=100))
+all.Qs <- append(big.Qs,seq(from=1000000,to=10000000,by=1000))
 for (q in 1:length(givenQ.table)){
   
   # 1. Suspended load rating curve 率定曲線
@@ -689,14 +791,14 @@ for (q in 1:length(givenQ.table)){
   
   # 2.(Peng et al. 2020) 從CDF隨機取一個點
   #set.seed(100)
-  r2 <- runif(1) #隨機產生1個均勻分布
+  r2 <- runif(1,min=0.01,max=0.99) #隨機產生1個均勻分布
   F_Q <- get(paste0("p",margin.dist[1]))(givenQ.table[q], margin.par[margin.num[1],1], margin.par[margin.num[1],2])
   con.cdf2 <- cCopula(cbind(F_Q,r2), copula = copula.func,indices = 2, inverse = T)
   est.L2 <- get(paste0("q",margin.dist[2]))(con.cdf2,margin.par[margin.num[2],3], margin.par[margin.num[2],4])
   
   # 3.(Bezak et al. 2017) 從CDF隨機取1000個點，再取中位數
   #set.seed(100)
-  r3 <- runif(100) #隨機產生1000個均勻分布
+  r3 <- runif(100,min=0.01,max=0.99) #隨機產生1000個均勻分布
   F_Q <- get(paste0("p",margin.dist[1]))(givenQ.table[q], margin.par[margin.num[1],1], margin.par[margin.num[1],2])
   con.cdf3 <- cCopula(cbind(F_Q,r3), copula = copula.func,indices = 2, inverse = T)
   est.L3 <- get(paste0("q",margin.dist[2]))(con.cdf3,margin.par[margin.num[2],3], margin.par[margin.num[2],4])
@@ -704,13 +806,12 @@ for (q in 1:length(givenQ.table)){
 
   # 4. mode(眾數)
   F_Q <- get(paste0("p",margin.dist[1]))(givenQ.table[q], margin.par[margin.num[1],1], margin.par[margin.num[1],2])
-  F_L <- get(paste0("p",margin.dist[2]))(MD.anal$Suspended.Load, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
-  f_L <- get(paste0("d",margin.dist[2]))(MD.anal$Suspended.Load, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+  F_L <- get(paste0("p",margin.dist[2]))(all.Qs, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+  f_L <- get(paste0("d",margin.dist[2]))(all.Qs, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
   con.pdf <-copula.pdf(F_Q,F_L,fitcopula.par$copula.parameter)*f_L
-  max(con.pdf) # 最大PDF值
-  est.L4 <- MD.anal$Suspended.Load[which.max(con.pdf)] # PDF最大值所推估的輸砂量
+  #max(con.pdf) # 最大PDF值
+  est.L4 <- all.Qs[which.max(con.pdf)] # PDF最大值所推估的輸砂量
 
-  
   each.est <- cbind(est.L1,est.L2,med.est.L3,est.L4)
   estimate.SSL <- rbind(estimate.SSL,each.est)
   print(paste0("完成",q,"次，還剩",length(givenQ.table)-q,"次"))
@@ -765,27 +866,8 @@ for (g in 1:(length(group.BC)-1)){
   colnames(imp.group) <- c("Year","Month","Day","Discharge",
                            "Suspended.Load","asNA","Imp.SSL") # 為框架的行命名
   
-  imp.table <- rbind(imp.table,imp.group) # 傳承
+  imp.table <- rbind(imp.table,imp.group) # 表格傳承
   
-  # # 計算損失函數
-  # imp_vs_rating.group <- imp.group[(is.na(imp.group$asNA)),] #保留 na
-  # 
-  # # rmse (root mean square error)
-  # rmse.imp <- rmse(imp_vs_rating.group$Suspended.Load, imp_vs_rating.group$Imp.SSL) #原本移除的觀測值與補遺值
-  # rmse.rating <- rmse(imp_vs_rating.group$Suspended.Load, imp_vs_rating.group$ratingSSL_group) #原本移除的觀測值與率定值
-  # 
-  # # mse (mean absolute error)
-  # mse.imp <- mse(imp_vs_rating.group$Suspended.Load, imp_vs_rating.group$Imp.SSL) #原本移除的觀測值與補遺值
-  # mse.rating <- mse(imp_vs_rating.group$Suspended.Load, imp_vs_rating.group$ratingSSL_group) #原本移除的觀測值與率定值
-  # 
-  # # mape (mean absolute persentage error)
-  # mape.imp <- mape(imp_vs_rating.group$Suspended.Load, imp_vs_rating.group$Imp.SSL) #原本移除的觀測值與補遺值
-  # mape.rating <- mape(imp_vs_rating.group$Suspended.Load, imp_vs_rating.group$ratingSSL_group) #原本移除的觀測值與率定值
-  # 
-  # # loss function
-  # loss <- cbind(mse.imp, mse.rating,mape.imp, mape.rating,rmse.imp, rmse.rating)
-  # rownames(loss) <- paste0("group",g)
-  # loss.table <- rbind(loss.table,loss)
   # 補遺資料出圖
   setwd(paste0("F:/R_output/",station,"/parametric&coimp")) # 請修改儲存路徑：
   png(paste0(year[1],"到",year[y],"年",station_ch,"測站補遺驗證group",g,".png"),width = 1250, height = 700, units = "px", pointsize = 12)
@@ -799,8 +881,6 @@ for (g in 1:(length(group.BC)-1)){
   dev.off()
 }
 print("CoImp 分組計算完成")
-
-
 
 # 6.(Di Lascio et al. 2015) 對數尺度
 
@@ -928,21 +1008,46 @@ ggplot(validation.table)+
   geom_point(aes(x=Discharge,y=est.SSL4,color="PDF眾數"),size=3)+
   geom_point(aes(x=Discharge,y=est.SSL5,color="HitorMiss"),size=3)+
   geom_point(aes(x=Discharge,y=est.SSL6,color="log(HitorMiss)"),size=3)+
-  # xlim(0,200)+
-  # ylim(0,10000)+
+   #xlim(0,200)+
+   #ylim(0,10000)+
   labs(x="流量Q(cms)",y="輸砂量Qs (公噸)") + # 座標軸名稱
   scale_color_discrete(name="圖例")+  #圖例名稱
   ggtitle(paste0(year[1],"到",year[y],"年",station_ch,"測站驗證(30%觀測資料)"))+
   theme(text=element_text(size=30))  # 字體大小
 dev.off()
 
-a1 <- subset(validation.table,Discharge==5)
-a2 <- subset(validation.table,Discharge==10)
-a3 <- subset(validation.table,Discharge==15)
-a4 <- subset(validation.table,Discharge==20)
-a5 <- subset(validation.table,Discharge==30)
-check.table <- rbind(a1,a2,a3,a4,a5)
-file <- paste("F:/R_output/",station,"/parametric&coimp/",
-              year[1],"到", year[y],station_ch,"驗證特定流量(30%觀測資料).csv", sep="") #存檔路徑
-write.csv(check.table,file)
+setwd(paste0("F:/R_output/",station,"/parametric&coimp")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站驗證(6種推估方法)小.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+ggplot(validation.table)+
+  geom_point(aes(x=Discharge,y=Suspended.Load,color="真實值"),size=5)+
+  geom_point(aes(x=Discharge,y=est.SSL1,color="率定曲線"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL2,color="CDF取1點"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL3,color="CDF取100點之中位數"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL4,color="PDF眾數"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL5,color="HitorMiss"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL6,color="log(HitorMiss)"),size=3)+
+  xlim(0,30)+
+  ylim(0,2000)+
+  labs(x="流量Q(cms)",y="輸砂量Qs (公噸)") + # 座標軸名稱
+  scale_color_discrete(name="圖例")+  #圖例名稱
+  ggtitle(paste0(year[1],"到",year[y],"年",station_ch,"測站驗證(30%觀測資料)"))+
+  theme(text=element_text(size=30))  # 字體大小
+dev.off()
 
+setwd(paste0("F:/R_output/",station,"/parametric&coimp")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站驗證(6種推估方法)中.png"),width = 1250, height = 700, units = "px", pointsize = 12)
+ggplot(validation.table)+
+  geom_point(aes(x=Discharge,y=Suspended.Load,color="真實值"),size=5)+
+  geom_point(aes(x=Discharge,y=est.SSL1,color="率定曲線"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL2,color="CDF取1點"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL3,color="CDF取100點之中位數"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL4,color="PDF眾數"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL5,color="HitorMiss"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL6,color="log(HitorMiss)"),size=3)+
+  xlim(0,100)+
+  ylim(0,10000)+
+  labs(x="流量Q(cms)",y="輸砂量Qs (公噸)") + # 座標軸名稱
+  scale_color_discrete(name="圖例")+  #圖例名稱
+  ggtitle(paste0(year[1],"到",year[y],"年",station_ch,"測站驗證(30%觀測資料)"))+
+  theme(text=element_text(size=30))  # 字體大小
+dev.off()
