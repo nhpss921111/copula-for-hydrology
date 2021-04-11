@@ -1,7 +1,7 @@
 # 邊際分布：parametric method
 # copula函數：IFM method
 # 開始撰寫日期：2020/02/16
-# 完成撰寫日期：2021/03/23
+# 完成撰寫日期：2021/04/11
 rm(list=ls())
 library(copula)
 library(CoImp)
@@ -273,11 +273,11 @@ ggplot(data=rating.all)+
   geom_point(aes(x=Discharge,y=Suspended.Load/10000),size=4) +
   geom_line(aes(x=Discharge,y=ratingSSL/10000),size=2) +
   scale_x_continuous(guide = "prism_minor", #x軸副刻度
-                     limits = c(0, max(table$Discharge)),
-                     minor_breaks = seq(0, max(table$Discharge), 100))+
+                     limits = c(0, max(rating.all$Discharge)),
+                     minor_breaks = seq(0, max(rating.all$Discharge), 100))+
   scale_y_continuous(guide = "prism_minor", #y軸副刻度
-                     limits = c(0, max(table$Suspended.Load)/10000),
-                     minor_breaks = seq(0, max(table$Suspended.Load)/10000, 20))+
+                     limits = c(0, max(rating.all$Suspended.Load)/10000),
+                     minor_breaks = seq(0, max(rating.all$Suspended.Load)/10000, 20))+
   labs(x="日流量Q(立方米/秒)",y=TeX("$日懸浮載輸砂量L(10^4公頓/日)$")) + # 座標軸名稱
   theme_bw()+ #白底
   theme(legend.position = c(0.2,0.9))+ #圖例位置座標
@@ -1014,8 +1014,8 @@ dev.off()
 print("開始驗證")
 MD.onlyNA <- MD[complete.cases(MD)==F, ]
 MD.onlyNA.rmNASSL <- MD.onlyNA[,-5]
-ori.data.rat <- left_join(MD.rmNA.rmNASSL,rm.ob.data)
-givenQ.table <- MD.rmNA$Discharge
+ori.data.vad <- left_join(MD.onlyNA.rmNASSL,rm.ob.data)
+givenQ.table <- MD.onlyNA$Discharge
 estimate.SSL <- c()
 
 for (q in 1:length(givenQ.table)){
@@ -1162,9 +1162,34 @@ ggplot(data=table,aes(x=Discharge,y=Suspended.Load/10000,shape=type))+
   theme(legend.title=element_blank())+
   theme(prism.ticks.length=unit(.5,"lines"))+
   theme(axis.ticks.length=unit(1,"lines"))
+dev.off()
 
-   #     axis.text.x= element_text(margin(t=.4 ,unit="cm"))
-  #)
+
+setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站驗證(5種推估方法).png"),width = 1200, height = 800, units = "px", pointsize = 12)
+ggplot(SSL.rating.result)+
+  geom_point(aes(x=Discharge,y=Suspended.Load/10000,shape="觀測值"),size=5)+
+  geom_point(aes(x=Discharge,y=率定曲線/10000,shape="率定曲線"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL1/10000,shape="方法1"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL2/10000,shape="方法2"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL3/10000,shape="方法3"),size=3)+
+  geom_point(aes(x=Discharge,y=est.SSL4/10000,shape="方法4"),size=3)+
+  scale_x_continuous(guide = "prism_minor", #x軸副刻度
+                     limits = c(0, max(SSL.rating.result$Discharge)),
+                     minor_breaks = seq(0, max(SSL.rating.result$Discharge), 100))+
+  scale_y_continuous(guide = "prism_minor", #y軸副刻度
+                     limits = c(0, max(SSL.rating.result)/10000),
+                     minor_breaks = seq(0, max(SSL.rating.result)/10000, 100))+
+  labs(x=TeX("$日流量Q(m^3/s)$"),y=TeX("$日懸浮載輸砂量(10^4 公噸)$")) + # 座標軸名稱
+  theme_bw()+ #白底
+  theme(legend.position = c(.15,.8))+ #圖例位置座標
+  theme(legend.title=element_blank())+ #隱藏圖例標題
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+  theme(prism.ticks.length=unit(.7,"lines"))+
+  theme(axis.ticks.length=unit(1.2,"lines"))+
+  theme(text=element_text(size=40,color="black"))+  # 字體大小
+  theme(axis.text = element_text(colour = "black"))
 dev.off()
 
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
