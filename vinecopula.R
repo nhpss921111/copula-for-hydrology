@@ -1,7 +1,7 @@
 # 邊際分布：parametric method
 # copula函數：IFM method
 # 開始撰寫日期：2020/02/16
-# 完成撰寫日期：2021/04/19
+# 完成撰寫日期：2021/06/09
 rm(list=ls())
 library(copula)
 library(CoImp)
@@ -397,25 +397,76 @@ margin.dist <-c(margin.aic[length(candidate)+1,1],margin.aic[length(candidate)+1
 # 畫最佳邊際分布分析圖(PDFs.CDFs,Q-Q plot,P-P plot)
 # 注意：因尺度不同，需要手動調整，各自出圖
 # for(i in 1:dim(MD.anal)[2]){ # Q ,QS
+#   i <- 1
 #   var <- MD.anal[,i]
 #   print(paste0("第",i,"個變數：",colnames(MD.anal)[i])) #顯示第幾個及變數名稱
 #   if(margin.dist[i] != "gumbel"){
 #     md.plot <- fitdist(var, dist = margin.dist[i])}
-#   
+# 
 #   if(margin.dist[i] == "gumbel"){
 #     fitgumbel <- eevd(var,method = "mle")  # 先計算初始值
-#     md.plot <- fitdist(var, dist = margin.dist[i], 
+#     md.plot <- fitdist(var, dist = margin.dist[i],
 #                        start = list(a=as.numeric(fitgumbel$parameters[1]),
 #                                     b=as.numeric(fitgumbel$parameters[2])))}
+#   
 #   setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
 #   png(paste0(year[1],"到",year[y],"年",station_ch,"測站",colnames(MD.anal)[i],"邊際分布分析.png"),width = 800, height = 600, units = "px", pointsize = 12)
-#   par(mfrow=c(2,2))
-#   denscomp(md.plot,xlegend=NULL,xlim=c(0,10000),breaks=10000,cex=2)
-#   qqcomp(md.plot,xlegend=NULL)
-#   cdfcomp(md.plot,xlim=c(0,1000000),xlegend=NULL)
-#   ppcomp(md.plot,xlegend=NULL)
+#   # ---- PDF、CDF、Q-Q plot、P-P plot ----
+#   par(mfcol=c(2,2))
+#   options(scipen = 200)
+#   denscomp(md.plot,xlab=TeX("$日流量(m^3/s)$"),main="PDF",breaks=200,xlim=c(0,300),cex=2)
+#   cdfcomp(md.plot,xlab=TeX("$日流量(m^3/s)$"),main="CDF",xlim=c(0,300),horizontals=F,lines01=T,xlegend=NULL)
+#   qqcomp(md.plot,xlab=TeX("$理論分布之分位數(m^3/s)$"),ylab=TeX("$觀測值之分位數(m^3/s)$"),
+#          xlim=c(0,300), ylim=c(0,300),addlegend = F)
+#   ppcomp(md.plot,xlab=TeX("$理論值累積機率$"),ylab=TeX("$觀測值累積機率$"),
+#          addlegend = F)
+#   
+#   # par(mfcol=c(2,2))
+#   # options(scipen = 200)
+#   # denscomp(md.plot,xlab=TeX("$日輸砂量(ton/d)$"),main="PDF",breaks=2000,xlim=c(0,100000),cex=2)
+#   # cdfcomp(md.plot,xlab=TeX("$日輸砂量(ton/d)$"),main="CDF",xlim=c(0,100000),horizontals=F,lines01=T,xlegend=NULL)
+#   # qqcomp(md.plot,xlab=TeX("$理論分布之分位數(ton/d)$"),ylab=TeX("$觀測值之分位數(ton/d)$"),
+#   #        xlim=c(0,100000),ylim=c(0,100000),addlegend = F)
+#   # ppcomp(md.plot,xlab=TeX("$理論值累積機率$"),ylab=TeX("$觀測值累積機率$"),
+#   #        addlegend = F)
+#   
+#   # --- CDF plot ----
+#   #cdfcomp(md.plot,xlim=c(0,800),xlab=TeX("$Discharge(m^3/s)$"),
+#   #        legendtext = NULL,datapch=16,horizontals=F,verticals=F,cex.lab=1.4,cex.axis=1.5)
+#   #legend("bottomright", legend = c("obsreved", "fitted"),
+#   #       pch = c(19, NA), lty = c(NA, 1),col=c(1,2),cex=1.5)
+#   
+#   # options(scipen = 200)
+#   # cdfcomp(md.plot,xlim=c(0,1000000),xlab=TeX("Suspended sediment $(ton/d)$"),
+#   #         legendtext = NULL,datapch=16,horizontals=F,verticals=F,cex.lab=1.4,cex.axis=1.5)
+#   # legend("bottomright", legend = c("obsreved", "fitted"),
+#   #        pch = c(19, NA), lty = c(NA, 1),col=c(1,2),cex=1.5)
+#   
 #   dev.off()
 # }
+f <- get(paste0("p",margin.dist[1]))(MD.anal$Discharge, margin.par[margin.num[1],1], margin.par[margin.num[1],2])
+ggplot(data.frame(MD.anal$Discharge,f),aes(x=MD.anal$Discharge,y=f))+
+  geom_line()+
+  xlim(0,500)+
+  xlab("流量 Q (cms)")+
+  ylab("累積機率")+
+  theme_bw() + # 白底
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+  theme(text=element_text(size=20))  # 字體大小
+
+f <- get(paste0("p",margin.dist[2]))(MD.anal$Suspended.Load, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
+options(scipen = 200)
+ggplot(data.frame(MD.anal$Suspended.Load,f),aes(x=MD.anal$Suspended.Load,y=f))+
+  geom_line()+
+  xlim(0,100000)+
+  xlab("輸砂量 L (ton/d)")+
+  ylab("累積機率")+
+  theme_bw() + # 白底
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+  theme(text=element_text(size=15))  # 字體大小
+
 # 儲存 margins 相關資料
 file <- paste("F:/R_output/",station,"/vinecopula/",
               year[1],"到", year[y],station_ch," margins parameter.csv", sep="") #存檔路徑
@@ -603,8 +654,8 @@ df <- data.frame(FQ=margins.cdf[,1],FQs=margins.cdf[,2],simcopula)
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
 png(paste0(year[1],"到",year[y],"年",station_ch,"測站 copula CDF 等高線圖.png"),width = 500, height = 350, units = "px", pointsize = 12)
 contour(copula.func, pCopula, xlim = c(0,1), ylim=c(0,1),xlab = TeX('$\\F_Q(q)$'), 
-        ylab=TeX('$\\F_L(l)$'),labcex = 1.3,cex.lab=1.15,cex.axis=1.2)
-points(df$FQ,df$FQs)
+        col=c(2),ylab=TeX('$\\F_L(l)$'),labcex = 1.3,cex.lab=1.15,cex.axis=1.2)
+points(df$FQ,df$FQs,pch=16)
 dev.off()
 
 ggplot()+
@@ -638,15 +689,15 @@ dev.off()
 
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
 png(paste0(year[1],"到",year[y],"年",station_ch,"測站joint PDF.png"),width = 500, height = 350, units = "px", pointsize = 12)
-contour(mymvdc, dMvdc, xlim = c(0,50), ylim=c(0, 5000), xlab = TeX("Q($m^3/s$)"), ylab="L(ton)",labcex = 1.5,cex.lab=1.5,cex.axis=1.5)
-points(MD.anal$Discharge,MD.anal$Suspended.Load)
+contour(mymvdc, dMvdc, xlim = c(0,50), ylim=c(0, 5000), xlab =  TeX("$流量Q \\,(m^3/s)$"), ylab=TeX("$輸砂量L\\,(ton/d)$"),col=c(2),labcex = 1.2,cex.lab=1.2,cex.axis=1.2)
+points(MD.anal$Discharge,MD.anal$Suspended.Load,pch=16)
 minor.tick(nx=4, ny=4, tick.ratio=.5)
 dev.off()
 
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
 png(paste0(year[1],"到",year[y],"年",station_ch,"測站joint CDF.png"),width = 500, height = 350, units = "px", pointsize = 12)
-contour(mymvdc, pMvdc, xlim = c(0,250), ylim=c(0, 100000),xlab =  TeX("Q($m^3/s$)"), ylab="L(ton)",labcex = 1.5,cex.lab=1.5,cex.axis=1.5)
-points(MD.anal$Discharge,MD.anal$Suspended.Load)
+contour(mymvdc, pMvdc, xlim = c(0,300), ylim=c(0, 300000),xlab =  TeX("$流量Q \\,(m^3/s)$"), ylab=TeX("$輸砂量L\\,(ton/d)$"),col=c(2),labcex = 1.2,cex.lab=1.2,cex.axis=1.2)
+points(MD.anal$Discharge,MD.anal$Suspended.Load,pch=16)
 minor.tick(nx=4, ny=4, tick.ratio=.5)
 dev.off()
 
@@ -764,7 +815,7 @@ con.cdf <- cCopula(cbind(F_Q,F_L), copula = copula.func,indices = dim(copula.fun
 # plot conditional CDF of L given the q0
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
 png(paste0(year[1],"到",year[y],"年",station_ch,"測站Q=",givenQ,"cms下conditional CDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
-Con.cdf <- ggplot()+
+ggplot()+
   geom_line(aes(x=all.Qs,y=con.cdf),size=1.5) +
   labs(x="輸砂量Qs (公噸)",y="CDF累積機率值") + # 座標軸名稱
   xlim(0,200000)+
@@ -806,25 +857,25 @@ for ( i in 1:length(givenQ)){
 }
 
 # 描述CDF之用
-which(subset(con.cdf.table,Discharge=="30cms")$CDF>0.75)
+which(subset(con.cdf.table,Discharge=="50cms")$CDF>0.75)
 (subset(con.cdf.table,Discharge=="50cms")[5000,]$CDF)-subset(con.cdf.table,Discharge=="50cms")[1000,]$CDF
 
 # plot conditional PDF of L given the q0
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站不同流量情況下conditional PDF.png"),width = 970, height = 600, units = "px", pointsize = 12)
-ggplot(data=con.pdf.table,aes(x=SSL,y=PDF,group=Discharge))+
-  geom_line(aes(linetype=Discharge,size=Discharge))+
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站不同流量情況下conditional PDF.png"),width = 1000, height = 600, units = "px", pointsize = 12)
+ggplot(data=con.pdf.table,aes(x=SSL,y=PDF,group=Discharge,color=Discharge))+
+  geom_line(aes(size=Discharge))+
   stat_peaks(span = NULL,
              geom = "text_repel",
              mapping = aes(label = paste(..y.label.., ..x.label..)),
              x.label.fmt = "at %.0d ton",
              y.label.fmt = "max PDF value = %.5f",
-             segment.colour = "blue",
+             segment.colour = "black",
              arrow = grid::arrow(angle=10,length = unit(1, "cm"),ends="last",type="closed"),
              nudge_x = 5,size = 8, vjust =.25,hjust=-.8)+
   scale_linetype_manual(values=c("twodash", "dotted","solid")) +
   scale_size_manual(values=c(1.3,1.3,1.3))+
-  labs(x=TeX("$日懸浮載輸砂量(ton/d)$"),y="PDF函數值") + # 座標軸名稱
+  labs(x=TeX("$日懸浮載輸砂量 \\,(ton/d)$"),y="PDF") + # 座標軸名稱
   xlim(0,10000)+
   scale_x_continuous(guide = "prism_minor", #x軸副刻度
                      limits = c(0, 10000),
@@ -846,11 +897,11 @@ dev.off()
 # plot conditional CDF of L given the q0
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
 png(paste0(year[1],"到",year[y],"年",station_ch,"測站不同流量情況下conditional CDF.png"),width = 950, height = 600, units = "px", pointsize = 12)
-ggplot(data=con.cdf.table,aes(x=SSL,y=CDF,group=Discharge))+
-  geom_line(aes(linetype=Discharge,size=Discharge))+
+ggplot(data=con.cdf.table,aes(x=SSL,y=CDF,color=Discharge))+
+  geom_line(aes(size=Discharge))+
   scale_linetype_manual(values=c("twodash", "dotted","solid")) +
   scale_size_manual(values=c(1.3,1.3,1.3))+
-  labs(x=TeX("$日懸浮載輸砂量(ton/d)$"),y="CDF函數值") + # 座標軸名稱
+  labs(x=TeX("$日懸浮載輸砂量 \\,(ton/d)$"),y="CDF") + # 座標軸名稱
   xlim(0,50000)+
   scale_x_continuous(guide = "prism_minor", #x軸副刻度
                      limits = c(0, 50000),
@@ -906,7 +957,7 @@ for (q in 1:length(givenQ.table)){
   each.m2 <- get(paste0("q",margin.dist[2]))(con.cdf2,margin.par[margin.num[2],3], margin.par[margin.num[2],4])
   Suspended.Load <- rbind(Suspended.Load,each.m2)
 }  
-rat.SSL2 <- data.frame(MD.rmNA.rmSSL,Suspended.Load,group="方法1")
+rat.SSL2 <- data.frame(MD.rmNA.rmSSL,Suspended.Load,group="方法 1")
 colnames(rat.SSL2) <- c("Year","Month","Day","Discharge","Suspended.Load","group")
 print("方法1率定完畢")
 
@@ -923,7 +974,7 @@ for (q in 1:length(givenQ.table)){
   each.m3 <- get(paste0("q",margin.dist[2]))(con.cdf3,margin.par[margin.num[2],3], margin.par[margin.num[2],4])
   Suspended.Load <- rbind(Suspended.Load,each.m3)
 }
-rat.SSL3 <- data.frame(MD.rmNA.rmSSL,Suspended.Load,group="方法2")
+rat.SSL3 <- data.frame(MD.rmNA.rmSSL,Suspended.Load,group="方法 2")
 colnames(rat.SSL3) <- c("Year","Month","Day","Discharge","Suspended.Load","group")
 print("方法2率定完畢")
 
@@ -943,7 +994,7 @@ for (q in 1:length(givenQ.table)){
   each.m4 <- all.Qs[which.max(con.pdf)] # PDF最大值所推估的輸砂量
   Suspended.Load <- rbind(Suspended.Load,each.m4)
 }
-rat.SSL4 <- data.frame(MD.rmNA.rmSSL,Suspended.Load,group="方法3")
+rat.SSL4 <- data.frame(MD.rmNA.rmSSL,Suspended.Load,group="方法 3")
 colnames(rat.SSL4) <- c("Year","Month","Day","Discharge","Suspended.Load","group")
 print("方法3率定完畢")
 
@@ -977,7 +1028,7 @@ for (q in 1:length(givenQ.table)){
   Suspended.Load <- rbind(Suspended.Load,each.m5)
   print(paste0("第",q,"次完成"))
 }
-rat.SSL5 <- data.frame(MD.rmNA.rmSSL,Suspended.Load,group="方法4")
+rat.SSL5 <- data.frame(MD.rmNA.rmSSL,Suspended.Load,group="方法 4")
 colnames(rat.SSL5) <- c("Year","Month","Day","Discharge","Suspended.Load","group")
 print("方法4率定完畢")
 
@@ -992,12 +1043,11 @@ write.csv(rating.table,file)
 # 率定資料分組
 group.obser  <- subset(rating.table,group=="觀測資料")
 group.rating <- subset(rating.table,group=="率定曲線")
-group.m1     <- subset(rating.table,group=="方法1")
-group.m2     <- subset(rating.table,group=="方法2")
-group.m3     <- subset(rating.table,group=="方法3")
-group.m4     <- subset(rating.table,group=="方法4")
+group.m1     <- subset(rating.table,group=="方法 1")
+group.m2     <- subset(rating.table,group=="方法 2")
+group.m3     <- subset(rating.table,group=="方法 3")
+group.m4     <- subset(rating.table,group=="方法 4")
 
-o <- gof(group.rating$Suspended.Load,group.obser$Suspended.Load)
 # 1. MSE
 mse1 <- mse(group.obser$Suspended.Load,group.rating$Suspended.Load)
 mse2 <- mse(group.obser$Suspended.Load,group.m1$Suspended.Load)
@@ -1067,14 +1117,18 @@ write.csv(error.table,file)
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
 png(paste0(year[1],"到",year[y],"年",station_ch,"測站率定(5種推估方法).png"),width = 800, height = 600, units = "px", pointsize = 12)
 ggplot(rating.table,aes(x=Discharge,y=Suspended.Load/10000,shape=group))+
-  geom_point(size=2.5)+
+  geom_point(aes(shape=group,color=group,size=group))+
+  geom_line(aes(color=group))+
   scale_x_continuous(guide = "prism_minor", #x軸副刻度
                      limits = c(0, max(rating.table$Discharge)),
                      minor_breaks = seq(0, max(rating.table$Discharge), 100))+
   scale_y_continuous(guide = "prism_minor", #y軸副刻度
                      limits = c(0, max(rating.table$Suspended.Load)/10000),
                      minor_breaks = seq(0, max(rating.table$Suspended.Load)/10000, 20))+
-  labs(x=TeX("$日流量Q(m^3/s)$"),y=TeX("$日懸浮載輸砂量(10^4 ton/d)$")) + # 座標軸名稱
+  labs(x=TeX("$日流量Q \\,(m^3/s)$"),y=TeX("$日懸浮載輸砂量L \\,(10^4 \\,ton/d)$")) + # 座標軸名稱
+  scale_color_manual(values=c("black","red","orange","darkgreen","blue","purple"))+
+  scale_shape_manual(values=c(19,0,1,2,4,6))+
+  scale_size_manual(values=c(4,3,3,3,3,3))+
   theme_bw()+ #白底
   theme(legend.position = c(.15,.75))+ #圖例位置座標
   theme(legend.title=element_blank())+ #隱藏圖例標題
@@ -1126,7 +1180,7 @@ for (q in 1:length(givenQ.table)){
   get(paste0("q",margin.dist[2]))(0.995,margin.par[margin.num[2],3], margin.par[margin.num[2],4])
   Suspended.Load <- rbind(Suspended.Load,each.L2)
 }  
-vad.SSL2 <- data.frame(MD.onlyNA.rmNASSL,Suspended.Load,group="方法1")
+vad.SSL2 <- data.frame(MD.onlyNA.rmNASSL,Suspended.Load,group="方法 1")
 colnames(vad.SSL2) <- c("Year","Month","Day","Discharge","Suspended.Load","group")
 print("方法1驗證完畢")
 
@@ -1143,7 +1197,7 @@ for (q in 1:length(givenQ.table)){
   each.L3 <- get(paste0("q",margin.dist[2]))(con.cdf3,margin.par[margin.num[2],3], margin.par[margin.num[2],4])
   Suspended.Load <- rbind(Suspended.Load,each.L3)
 }
-vad.SSL3 <- data.frame(MD.onlyNA.rmNASSL,Suspended.Load,group="方法2")
+vad.SSL3 <- data.frame(MD.onlyNA.rmNASSL,Suspended.Load,group="方法 2")
 colnames(vad.SSL3) <- c("Year","Month","Day","Discharge","Suspended.Load","group")
 print("方法2驗證完畢")
 
@@ -1163,7 +1217,7 @@ for (q in 1:length(givenQ.table)){
   each.L4 <- all.Qs[which.max(con.pdf)] # PDF最大值所推估的輸砂量
   Suspended.Load <- rbind(Suspended.Load,each.L4)
 }
-vad.SSL4 <- data.frame(MD.onlyNA.rmNASSL,Suspended.Load,group="方法3")
+vad.SSL4 <- data.frame(MD.onlyNA.rmNASSL,Suspended.Load,group="方法 3")
 colnames(vad.SSL4) <- c("Year","Month","Day","Discharge","Suspended.Load","group")
 print("方法3驗證完畢")
   
@@ -1197,7 +1251,7 @@ for (q in 1:length(givenQ.table)){
   each.L5 <- u
   Suspended.Load <- rbind(Suspended.Load,each.L5)
 }
-vad.SSL5 <- data.frame(MD.onlyNA.rmNASSL,Suspended.Load,group="方法4")
+vad.SSL5 <- data.frame(MD.onlyNA.rmNASSL,Suspended.Load,group="方法 4")
 colnames(vad.SSL5) <- c("Year","Month","Day","Discharge","Suspended.Load","group")
 print("方法4驗證完畢")
 
@@ -1213,10 +1267,10 @@ write.csv(validation.table,file)
 # 驗證資料分組
 group.obser <- subset(validation.table,group=="觀測資料")
 group.rating <- subset(validation.table,group=="率定曲線")
-group.m1 <- subset(validation.table,group=="方法1")
-group.m2 <- subset(validation.table,group=="方法2")
-group.m3 <- subset(validation.table,group=="方法3")
-group.m4 <- subset(validation.table,group=="方法4")
+group.m1 <- subset(validation.table,group=="方法 1")
+group.m2 <- subset(validation.table,group=="方法 2")
+group.m3 <- subset(validation.table,group=="方法 3")
+group.m4 <- subset(validation.table,group=="方法 4")
 
 # 1. MSE
 mse1 <- mse(group.obser$Suspended.Load,group.rating$Suspended.Load)
@@ -1283,11 +1337,12 @@ file <- paste("F:/R_output/",station,"/vinecopula/",
               year[1],"到", year[y],station_ch,"驗證_誤差指標(30%觀測資料).csv", sep="") #存檔路徑
 write.csv(error.table,file)
 
-table <- rbind(data.frame(MD.rmNA,type="率定(1960-2000)"),data.frame(ori.data.vad,type="驗證(2001-2019)"))
+table <- rbind(data.frame(MD.rmNA,type="率定時期 (1960-2000)"),
+               data.frame(ori.data.vad,type="驗證時期 (2001-2019)"))
 
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
 png(paste0(year[1],"到",year[y],"年",station_ch,"測站模式率定&驗證.png"),width = 800, height = 600, units = "px", pointsize = 12)
-ggplot(data=table,aes(x=Discharge,y=Suspended.Load/10000,shape=type))+
+ggplot(data=table,aes(x=Discharge,y=Suspended.Load/10000,shape=type,color=type))+
   geom_point(size=3)+
   scale_x_continuous(guide = "prism_minor",
                      limits = c(0, max(table$Discharge)),
@@ -1295,13 +1350,14 @@ ggplot(data=table,aes(x=Discharge,y=Suspended.Load/10000,shape=type))+
   scale_y_continuous(guide = "prism_minor",
                      limits = c(0, max(table$Suspended.Load)/10000),
                      minor_breaks = seq(0, max(table$Suspended.Load), 20))+
-  labs(x=TeX("日流量Q (cms)"),y=TeX("$日懸浮載輸砂量L (10^4 ton/d )$")) + # 座標軸名稱
+  labs(x=TeX("日流量Q (cms)"),y=TeX("$日懸浮載輸砂量L \\,(10^4 \\,ton/d )$")) + # 座標軸名稱
   scale_shape_manual(values=c(1,4))+  #圖例
   theme_bw() + # 白底
   theme(panel.grid.major = element_blank()) + # 隱藏主要格線
   theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
   theme(text=element_text(size=30))+# 字體大小
-  theme(legend.position=c(0.2,0.9))+
+  theme(axis.text = element_text(colour = "black"))+
+  theme(legend.position=c(0.25,0.8))+
   theme(legend.title=element_blank())+
   theme(prism.ticks.length=unit(.5,"lines"))+
   theme(axis.ticks.length=unit(1,"lines"))
@@ -1320,15 +1376,15 @@ ggplot(data=rating.curve.table,aes(x=Discharge,y=Suspended.Load/10000))+
   scale_y_continuous(guide = "prism_minor",
                      limits = c(0, max(rating.curve.table$Suspended.Load)/10000),
                      minor_breaks = seq(0, max(rating.curve.table$Suspended.Load), 20))+
-  labs(x=TeX("日流量Q (cms)"),y=TeX("$日懸浮載輸砂量L (10^4 ton/d )$")) + # 座標軸名稱
+  labs(x=TeX("$日流量Q \\,(m^3/s)$"),y=TeX("$日懸浮載輸砂量L \\, (10^4 \\,ton/d)$")) + # 座標軸名稱
   scale_shape_manual(values=c(1,4))+  #圖例
   theme_bw() + # 白底
-  theme(legend.position = "none")+ #圖例位置座標
-  theme(legend.title=element_blank())+ #隱藏圖例標題
+  #theme(legend.position = "none")+ #圖例位置座標
+  #theme(legend.title=element_blank())+ #隱藏圖例標題
   theme(panel.grid.major = element_blank()) + # 隱藏主要格線
   theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
   theme(text=element_text(size=30))+# 字體大小
-  theme(legend.position=c(0.2,0.8))+
+  theme(legend.position=c(0.25,0.8))+
   theme(legend.title=element_blank())+
   theme(prism.ticks.length=unit(.5,"lines"))+
   theme(axis.ticks.length=unit(1,"lines"))
@@ -1337,15 +1393,19 @@ dev.off()
 # 驗證輸砂量推估值
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
 png(paste0(year[1],"到",year[y],"年",station_ch,"測站驗證(5種推估方法).png"),width = 800, height = 600, units = "px", pointsize = 12)
-ggplot(validation.table,aes(x=Discharge,y=Suspended.Load/10000,shape=group))+
-  geom_point(size=2.5)+
+ggplot(data=validation.table,aes(x=Discharge,y=Suspended.Load/10000))+
+  geom_point(aes(shape=group,color=group,size=group))+
+  geom_line(aes(color=group))+
   scale_x_continuous(guide = "prism_minor", #x軸副刻度
                      limits = c(0, max(validation.table$Discharge)),
                      minor_breaks = seq(0, max(validation.table$Discharge), 100))+
   scale_y_continuous(guide = "prism_minor", #y軸副刻度
                      limits = c(0, max(validation.table$Suspended.Load)/10000),
                      minor_breaks = seq(0, max(validation.table$Suspended.Load)/10000, 20))+
-  labs(x=TeX("$日流量Q(m^3/s)$"),y=TeX("$日懸浮載輸砂量(10^4 ton/d)$")) + # 座標軸名稱
+  scale_color_manual(values=c("black","red","orange","darkgreen","blue","purple"))+
+  scale_shape_manual(values=c(19,0,1,2,4,6))+
+  scale_size_manual(values=c(4,3,3,3,3,3))+
+  labs(x=TeX("$日流量Q \\,(m^3/s)$"),y=TeX("$日懸浮載輸砂量L \\,(10^4 \\,ton/d)$")) + # 座標軸名稱
   theme_bw()+ #白底
   theme(legend.position = c(.15,.75))+ #圖例位置座標
   theme(legend.title=element_blank())+ #隱藏圖例標題
@@ -1365,10 +1425,10 @@ all.table <- rbind(rating.table,validation.table)
 # 驗證資料分組
 group.obser <- subset(all.table,group=="觀測資料")
 group.rating <- subset(all.table,group=="率定曲線")
-group.m1 <- subset(all.table,group=="方法1")
-group.m2 <- subset(all.table,group=="方法2")
-group.m3 <- subset(all.table,group=="方法3")
-group.m4 <- subset(all.table,group=="方法4")
+group.m1 <- subset(all.table,group=="方法 1")
+group.m2 <- subset(all.table,group=="方法 2")
+group.m3 <- subset(all.table,group=="方法 3")
+group.m4 <- subset(all.table,group=="方法 4")
 
 # 1. MSE
 mse1 <- mse(group.obser$Suspended.Load,group.rating$Suspended.Load)
@@ -1438,6 +1498,7 @@ write.csv(error.table,file)
 #
 
 # 1. 以不同流量分組比較誤差指標
+# ---- 1.1率定+驗證時期 -------
 Q0.3 <- sort(MD$Discharge)[round(length(MD$Discharge)*0.3)]
 Q0.7 <- sort(MD$Discharge)[round(length(MD$Discharge)*0.7)]
 group0 <- all.table
@@ -1448,10 +1509,10 @@ group3 <- subset(all.table,Discharge>Q0.7)
 for(i in 0:3){
   group.obser <- subset(get(paste0("group",i)),group=="觀測資料")
   group.rating <- subset(get(paste0("group",i)),group=="率定曲線")
-  group.m1 <- subset(get(paste0("group",i)),group=="方法1")
-  group.m2 <- subset(get(paste0("group",i)),group=="方法2")
-  group.m3 <- subset(get(paste0("group",i)),group=="方法3")
-  group.m4 <- subset(get(paste0("group",i)),group=="方法4")
+  group.m1 <- subset(get(paste0("group",i)),group=="方法 1")
+  group.m2 <- subset(get(paste0("group",i)),group=="方法 2")
+  group.m3 <- subset(get(paste0("group",i)),group=="方法 3")
+  group.m4 <- subset(get(paste0("group",i)),group=="方法 4")
   
   # 1. MSE
   mse1 <- mse(group.obser$Suspended.Load,group.rating$Suspended.Load)
@@ -1518,19 +1579,195 @@ for(i in 0:3){
                 year[1],"到", year[y],station_ch,"率定+驗證_誤差指標(第",i,"組).csv", sep="") #存檔路徑
   write.csv(error.table,file)
 }
-  #推估值與觀測值
-i <- 1 # 1 or2
+
+# ---- 1.2.1 率定時期 -------
+# # (all-30%, 70%)
+# Q0.3 <- sort(MD$Discharge)[round(length(MD$Discharge)*0.3)]
+# Q0.7 <- sort(MD$Discharge)[round(length(MD$Discharge)*0.7)]
+
+#(rating-30%, 70%)
+Q0.3 <- sort(MD.rmNA$Discharge)[round(length(MD.rmNA$Discharge)*0.3)]
+Q0.7 <- sort(MD.rmNA$Discharge)[round(length(MD.rmNA$Discharge)*0.7)]
+
+group0 <- rating.table
+group1 <- subset(rating.table,Discharge<Q0.3)
+group2 <- subset(rating.table,Discharge>=Q0.3&Discharge<Q0.7)
+group3 <- subset(rating.table,Discharge>Q0.7)
+
+for(i in 0:3){
+  group.obser <- subset(get(paste0("group",i)),group=="觀測資料")
+  group.rating <- subset(get(paste0("group",i)),group=="率定曲線")
+  group.m1 <- subset(get(paste0("group",i)),group=="方法 1")
+  group.m2 <- subset(get(paste0("group",i)),group=="方法 2")
+  group.m3 <- subset(get(paste0("group",i)),group=="方法 3")
+  group.m4 <- subset(get(paste0("group",i)),group=="方法 4")
+  
+  # 1. MSE
+  mse1 <- mse(group.obser$Suspended.Load,group.rating$Suspended.Load)
+  mse2 <- mse(group.obser$Suspended.Load,group.m1$Suspended.Load)
+  mse3 <- mse(group.obser$Suspended.Load,group.m2$Suspended.Load)
+  mse4 <- mse(group.obser$Suspended.Load,group.m3$Suspended.Load)
+  mse5 <- mse(group.obser$Suspended.Load,group.m4$Suspended.Load)
+  
+  mse.table <- cbind(mse1,mse2,mse3,mse4,mse5)
+  
+  # 2. RMSE
+  rmse1 <- rmse(group.obser$Suspended.Load,group.rating$Suspended.Load)
+  rmse2 <- rmse(group.obser$Suspended.Load,group.m1$Suspended.Load)
+  rmse3 <- rmse(group.obser$Suspended.Load,group.m2$Suspended.Load)
+  rmse4 <- rmse(group.obser$Suspended.Load,group.m3$Suspended.Load)
+  rmse5 <- rmse(group.obser$Suspended.Load,group.m4$Suspended.Load)
+  
+  rmse.table <- cbind(rmse1,rmse2,rmse3,rmse4,rmse5)
+  
+  # 3. NMSE
+  nmse1 <- nmse(group.obser$Suspended.Load,group.rating$Suspended.Load)
+  nmse2 <- nmse(group.obser$Suspended.Load,group.m1$Suspended.Load)
+  nmse3 <- nmse(group.obser$Suspended.Load,group.m2$Suspended.Load)
+  nmse4 <- nmse(group.obser$Suspended.Load,group.m3$Suspended.Load)
+  nmse5 <- nmse(group.obser$Suspended.Load,group.m4$Suspended.Load)
+  nmse.table <- cbind(nmse1,nmse2,nmse3,nmse4,nmse5)
+  
+  # 4. MAPE
+  mape1 <- mape(group.obser$Suspended.Load, group.rating$Suspended.Load)
+  mape2 <- mape(group.obser$Suspended.Load, group.m1$Suspended.Load)
+  mape3 <- mape(group.obser$Suspended.Load, group.m2$Suspended.Load)
+  mape4 <- mape(group.obser$Suspended.Load, group.m3$Suspended.Load)
+  mape5 <- mape(group.obser$Suspended.Load, group.m4$Suspended.Load)
+  mape.table <- cbind(mape1,mape2,mape3,mape4,mape5)
+  
+  # 5. NSE
+  nse1 <- nse(group.rating$Suspended.Load,group.obser$Suspended.Load)
+  nse2 <- nse(group.m1$Suspended.Load,group.obser$Suspended.Load)
+  nse3 <- nse(group.m2$Suspended.Load,group.obser$Suspended.Load)
+  nse4 <- nse(group.m3$Suspended.Load,group.obser$Suspended.Load)
+  nse5 <- nse(group.m4$Suspended.Load,group.obser$Suspended.Load)
+  nse.table <- cbind(nse1,nse2,nse3,nse4,nse5)
+  
+  # 6. NSE.abs
+  nse.abs1 <- nse.abs(group.rating$Suspended.Load,group.obser$Suspended.Load)
+  nse.abs2 <- nse.abs(group.m1$Suspended.Load,group.obser$Suspended.Load)
+  nse.abs3 <- nse.abs(group.m2$Suspended.Load,group.obser$Suspended.Load)
+  nse.abs4 <- nse.abs(group.m3$Suspended.Load,group.obser$Suspended.Load)
+  nse.abs5 <- nse.abs(group.m4$Suspended.Load,group.obser$Suspended.Load)
+  nse.abs.table <- cbind(nse.abs1,nse.abs2,nse.abs3,nse.abs4,nse.abs5)
+  
+  # 7.KGE
+  kge1 <- KGE(group.rating$Suspended.Load,group.obser$Suspended.Load)
+  kge2 <- KGE(group.m1$Suspended.Load,group.obser$Suspended.Load)
+  kge3 <- KGE(group.m2$Suspended.Load,group.obser$Suspended.Load)
+  kge4 <- KGE(group.m3$Suspended.Load,group.obser$Suspended.Load)
+  kge5 <- KGE(group.m4$Suspended.Load,group.obser$Suspended.Load)
+  kge.table <- cbind(kge1,kge2,kge3,kge4,kge5)
+  
+  error.table <- rbind(mse.table,rmse.table,nmse.table,mape.table,nse.table,nse.abs.table,kge.table)
+  colnames(error.table) <- c("率定曲線","est.SSL1","est.SSL2","est.SSL3","est.SSL4")
+  rownames(error.table) <- c("mse","rmse","nmse","mape","nse","nse.abs","kge")
+  file <- paste("F:/R_output/",station,"/vinecopula/",
+                year[1],"到", year[y],station_ch,"率定+驗證_誤差指標(第",i,"組).csv", sep="") #存檔路徑
+  write.csv(error.table,file)
+}
+
+# ---- 1.3 驗證時期 -------
+
+# # (all-30%, 70%)
+# Q0.3 <- sort(MD$Discharge)[round(length(MD$Discharge)*0.3)]
+# Q0.7 <- sort(MD$Discharge)[round(length(MD$Discharge)*0.7)]
+
+#(validation-30%, 70%)
+Q0.3 <- sort(MD.onlyNA$Discharge)[round(length(MD.onlyNA$Discharge)*0.3)]
+Q0.7 <- sort(MD.onlyNA$Discharge)[round(length(MD.onlyNA$Discharge)*0.7)]
+
+group0 <- validation.table
+group1 <- subset(validation.table,Discharge<Q0.3)
+group2 <- subset(validation.table,Discharge>=Q0.3&Discharge<Q0.7)
+group3 <- subset(validation.table,Discharge>Q0.7)
+
+for(i in 0:3){
+  group.obser <- subset(get(paste0("group",i)),group=="觀測資料")
+  group.rating <- subset(get(paste0("group",i)),group=="率定曲線")
+  group.m1 <- subset(get(paste0("group",i)),group=="方法 1")
+  group.m2 <- subset(get(paste0("group",i)),group=="方法 2")
+  group.m3 <- subset(get(paste0("group",i)),group=="方法 3")
+  group.m4 <- subset(get(paste0("group",i)),group=="方法 4")
+  
+  # 1. MSE
+  mse1 <- mse(group.obser$Suspended.Load,group.rating$Suspended.Load)
+  mse2 <- mse(group.obser$Suspended.Load,group.m1$Suspended.Load)
+  mse3 <- mse(group.obser$Suspended.Load,group.m2$Suspended.Load)
+  mse4 <- mse(group.obser$Suspended.Load,group.m3$Suspended.Load)
+  mse5 <- mse(group.obser$Suspended.Load,group.m4$Suspended.Load)
+  
+  mse.table <- cbind(mse1,mse2,mse3,mse4,mse5)
+  
+  # 2. RMSE
+  rmse1 <- rmse(group.obser$Suspended.Load,group.rating$Suspended.Load)
+  rmse2 <- rmse(group.obser$Suspended.Load,group.m1$Suspended.Load)
+  rmse3 <- rmse(group.obser$Suspended.Load,group.m2$Suspended.Load)
+  rmse4 <- rmse(group.obser$Suspended.Load,group.m3$Suspended.Load)
+  rmse5 <- rmse(group.obser$Suspended.Load,group.m4$Suspended.Load)
+  
+  rmse.table <- cbind(rmse1,rmse2,rmse3,rmse4,rmse5)
+  
+  # 3. NMSE
+  nmse1 <- nmse(group.obser$Suspended.Load,group.rating$Suspended.Load)
+  nmse2 <- nmse(group.obser$Suspended.Load,group.m1$Suspended.Load)
+  nmse3 <- nmse(group.obser$Suspended.Load,group.m2$Suspended.Load)
+  nmse4 <- nmse(group.obser$Suspended.Load,group.m3$Suspended.Load)
+  nmse5 <- nmse(group.obser$Suspended.Load,group.m4$Suspended.Load)
+  nmse.table <- cbind(nmse1,nmse2,nmse3,nmse4,nmse5)
+  
+  # 4. MAPE
+  mape1 <- mape(group.obser$Suspended.Load, group.rating$Suspended.Load)
+  mape2 <- mape(group.obser$Suspended.Load, group.m1$Suspended.Load)
+  mape3 <- mape(group.obser$Suspended.Load, group.m2$Suspended.Load)
+  mape4 <- mape(group.obser$Suspended.Load, group.m3$Suspended.Load)
+  mape5 <- mape(group.obser$Suspended.Load, group.m4$Suspended.Load)
+  mape.table <- cbind(mape1,mape2,mape3,mape4,mape5)
+  
+  # 5. NSE
+  nse1 <- nse(group.rating$Suspended.Load,group.obser$Suspended.Load)
+  nse2 <- nse(group.m1$Suspended.Load,group.obser$Suspended.Load)
+  nse3 <- nse(group.m2$Suspended.Load,group.obser$Suspended.Load)
+  nse4 <- nse(group.m3$Suspended.Load,group.obser$Suspended.Load)
+  nse5 <- nse(group.m4$Suspended.Load,group.obser$Suspended.Load)
+  nse.table <- cbind(nse1,nse2,nse3,nse4,nse5)
+  
+  # 6. NSE.abs
+  nse.abs1 <- nse.abs(group.rating$Suspended.Load,group.obser$Suspended.Load)
+  nse.abs2 <- nse.abs(group.m1$Suspended.Load,group.obser$Suspended.Load)
+  nse.abs3 <- nse.abs(group.m2$Suspended.Load,group.obser$Suspended.Load)
+  nse.abs4 <- nse.abs(group.m3$Suspended.Load,group.obser$Suspended.Load)
+  nse.abs5 <- nse.abs(group.m4$Suspended.Load,group.obser$Suspended.Load)
+  nse.abs.table <- cbind(nse.abs1,nse.abs2,nse.abs3,nse.abs4,nse.abs5)
+  
+  # 7.KGE
+  kge1 <- KGE(group.rating$Suspended.Load,group.obser$Suspended.Load)
+  kge2 <- KGE(group.m1$Suspended.Load,group.obser$Suspended.Load)
+  kge3 <- KGE(group.m2$Suspended.Load,group.obser$Suspended.Load)
+  kge4 <- KGE(group.m3$Suspended.Load,group.obser$Suspended.Load)
+  kge5 <- KGE(group.m4$Suspended.Load,group.obser$Suspended.Load)
+  kge.table <- cbind(kge1,kge2,kge3,kge4,kge5)
+  
+  error.table <- rbind(mse.table,rmse.table,nmse.table,mape.table,nse.table,nse.abs.table,kge.table)
+  colnames(error.table) <- c("率定曲線","est.SSL1","est.SSL2","est.SSL3","est.SSL4")
+  rownames(error.table) <- c("mse","rmse","nmse","mape","nse","nse.abs","kge")
+  file <- paste("F:/R_output/",station,"/vinecopula/",
+                year[1],"到", year[y],station_ch,"率定+驗證_誤差指標(第",i,"組).csv", sep="") #存檔路徑
+  write.csv(error.table,file)
+}
+# 驗證輸砂量推估值
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)第",i,"組.png"),width = 800, height = 600, units = "px", pointsize = 12)
-ggplot(get(paste0("group",i)),aes(x=Discharge,y=Suspended.Load/10000,shape=group))+
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站率定+驗證(5種推估方法).png"),width = 800, height = 600, units = "px", pointsize = 12)
+ggplot(all.table,aes(x=Discharge,y=Suspended.Load/10000,shape=group,color=group))+
   geom_point(size=2.5)+
   scale_x_continuous(guide = "prism_minor", #x軸副刻度
-                     limits = c(min(get(paste0("group",i))$Discharge), max(get(paste0("group",i))$Discharge)),
-                     minor_breaks = seq(0, max(get(paste0("group",i))$Discharge), 1))+
+                     limits = c(0, max(validation.table$Discharge)),
+                     minor_breaks = seq(0, max(validation.table$Discharge), 100))+
   scale_y_continuous(guide = "prism_minor", #y軸副刻度
-                     limits = c(min(get(paste0("group",i))$Suspended.Load)/10000, max(get(paste0("group",i))$Suspended.Load)/10000),
-                     minor_breaks = seq(min(get(paste0("group",i))$Suspended.Load)/10000, max(get(paste0("group",i))$Suspended.Load)/10000, 0.2))+
-  labs(x=TeX("$日流量Q(m^3/s)$"),y=TeX("$日懸浮載輸砂量(10^4 ton/d)$")) + # 座標軸名稱
+                     limits = c(0, max(validation.table$Suspended.Load)/10000),
+                     minor_breaks = seq(0, max(validation.table$Suspended.Load)/10000, 20))+
+  labs(x=TeX("$日流量Q \\,(m^3/s)$"),y=TeX("$日懸浮載輸砂量L \\,(10^4 \\,ton/d)$")) + # 座標軸名稱
   theme_bw()+ #白底
   theme(legend.position = c(.15,.75))+ #圖例位置座標
   theme(legend.title=element_blank())+ #隱藏圖例標題
@@ -1542,18 +1779,53 @@ ggplot(get(paste0("group",i)),aes(x=Discharge,y=Suspended.Load/10000,shape=group
   theme(axis.text = element_text(colour = "black"))
 dev.off()
 
+  #推估值與觀測值
+i <- 2 # 1 or2
+setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)第",i,"組.png"),width = 800, height = 600, units = "px", pointsize = 12)
+ggplot(get(paste0("group",i)),aes(x=Discharge,y=Suspended.Load/10000))+
+  geom_point(aes(shape=group,color=group,size=group))+
+  geom_line(aes(color=group))+
+  scale_x_continuous(guide = "prism_minor", #x軸副刻度
+                     limits = c(min(get(paste0("group",i))$Discharge), max(get(paste0("group",i))$Discharge)),
+                     minor_breaks = seq(0, max(get(paste0("group",i))$Discharge), 2.5))+
+  scale_y_continuous(guide = "prism_minor", #y軸副刻度
+                     limits = c(min(get(paste0("group",i))$Suspended.Load)/10000, max(get(paste0("group",i))$Suspended.Load)/10000),
+                     minor_breaks = seq(min(get(paste0("group",i))$Suspended.Load)/10000, max(get(paste0("group",i))$Suspended.Load)/10000, 1))+
+  scale_color_manual(values=c("black","red","orange","darkgreen","blue","purple"))+
+  scale_shape_manual(values=c(19,0,1,2,4,6))+
+  scale_size_manual(values=c(4,3,3,3,3,3))+
+  labs(x=TeX("$日流量Q \\,(m^3/s)$"),y=TeX("$日懸浮載輸砂量L \\,(10^4 \\,ton/d)$")) + # 座標軸名稱
+  theme_bw()+ #白底
+  theme(legend.position = c(.15,.75))+ #圖例位置座標
+  theme(legend.title=element_blank())+ #隱藏圖例標題
+  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
+  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
+  theme(prism.ticks.length=unit(.7,"lines"))+
+  theme(axis.ticks.length=unit(1.2,"lines"))+
+  theme(text=element_text(size=30,color="black"))+  # 字體大小
+  theme(axis.text = element_text(colour = "black"))
+dev.off()
+
+
+
+
 i <- 0 # 0 or 3
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
 png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)第",i,"組.png"),width = 800, height = 600, units = "px", pointsize = 12)
-ggplot(get(paste0("group",i)),aes(x=Discharge,y=Suspended.Load/10000,shape=group))+
-  geom_point(size=2.5)+
+ggplot(get(paste0("group",i)),aes(x=Discharge,y=Suspended.Load/10000))+
+  geom_point(aes(shape=group,color=group,size=group))+
+  geom_line(aes(color=group))+
   scale_x_continuous(guide = "prism_minor", #x軸副刻度
                      limits = c(0, max(get(paste0("group",i))$Discharge)),
                      minor_breaks = seq(0, max(get(paste0("group",i))$Discharge), 100))+
   scale_y_continuous(guide = "prism_minor", #y軸副刻度
                      limits = c(0, max(get(paste0("group",i))$Suspended.Load)/10000),
                      minor_breaks = seq(0, max(get(paste0("group",i))$Suspended.Load)/10000, 20))+
-  labs(x=TeX("$日流量Q(m^3/s)$"),y=TeX("$日懸浮載輸砂量(10^4 ton/d)$")) + # 座標軸名稱
+  scale_color_manual(values=c("black","red","orange","darkgreen","blue","purple"))+
+  scale_shape_manual(values=c(19,0,1,2,4,6))+
+  scale_size_manual(values=c(4,3,3,3,3,3))+
+  labs(x=TeX("$日流量Q \\,(m^3/s)$"),y=TeX("$日懸浮載輸砂量L \\,(10^4 \\,ton/d)$")) + # 座標軸名稱
   theme_bw()+ #白底
   theme(legend.position = c(.15,.75))+ #圖例位置座標
   theme(legend.title=element_blank())+ #隱藏圖例標題
@@ -1568,10 +1840,10 @@ dev.off()
 for (i in 0:3){
   l1 <- summary(subset(get(paste0("group",i)),group=="觀測資料")$Suspended.Load)
   l2 <- summary(subset(get(paste0("group",i)),group=="率定曲線")$Suspended.Load)
-  l3 <- summary(subset(get(paste0("group",i)),group=="方法1")$Suspended.Load)
-  l4 <- summary(subset(get(paste0("group",i)),group=="方法2")$Suspended.Load)
-  l5 <- summary(subset(get(paste0("group",i)),group=="方法3")$Suspended.Load)
-  l6 <- summary(subset(get(paste0("group",i)),group=="方法4")$Suspended.Load)
+  l3 <- summary(subset(get(paste0("group",i)),group=="方法 1")$Suspended.Load)
+  l4 <- summary(subset(get(paste0("group",i)),group=="方法 2")$Suspended.Load)
+  l5 <- summary(subset(get(paste0("group",i)),group=="方法 3")$Suspended.Load)
+  l6 <- summary(subset(get(paste0("group",i)),group=="方法 4")$Suspended.Load)
   stat.table <- cbind(l1,l2,l3,l4,l5,l6)
   colnames(stat.table) <- c("觀測資料","率定曲線","方法1","方法2","方法3","方法4")
   file <- paste("F:/R_output/",station,"/vinecopula/",
@@ -1621,68 +1893,6 @@ ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
   theme(axis.text = element_text(colour = "black"))
 dev.off()
 
-dis <- subset(all.table,Discharge<20.4&Discharge>19.5)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)20cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)
-  labs(x="",y=TeX("$日懸浮載輸砂量(ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
-dis <- subset(all.table,Discharge>24&Discharge<26)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-#dis$Suspended.Load <- dis$Suspended.Load/10000
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)25cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)+
-  labs(x="",y=TeX("$日懸浮載輸砂量( ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
-
-dis <- subset(all.table,Discharge<31&Discharge>29.2)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)30cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)
-  labs(x="",y=TeX("$日懸浮載輸砂量(ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
 dis <- subset(all.table,Discharge>35&Discharge<36)
 dis$Discharge <- paste0(dis$Discharge,"cms")
 #dis$Suspended.Load <- dis$Suspended.Load/10000
@@ -1704,114 +1914,11 @@ ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
   theme(axis.text = element_text(colour = "black"))
 dev.off()
 
-dis <- subset(all.table,Discharge<40.4&Discharge>39.5)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)40cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)
-  labs(x="",y=TeX("$日懸浮載輸砂量(ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
-dis <- subset(all.table,Discharge<50.5&Discharge>49)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)50cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)
-  labs(x="",y=TeX("$日懸浮載輸砂量(ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
-dis <- subset(all.table,Discharge>59&Discharge<62)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-#dis$Suspended.Load <- dis$Suspended.Load/10000
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)60cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load,digits = 2)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)
-  labs(x="",y=TeX("$日懸浮載輸砂量( ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
 dis <- subset(all.table,Discharge>67&Discharge<68)
 dis$Discharge <- paste0(dis$Discharge,"cms")
 #dis$Suspended.Load <- dis$Suspended.Load/10000
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
 png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)70cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)+
-  labs(x="",y=TeX("$日懸浮載輸砂量( ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
-dis <- subset(all.table,Discharge>77&Discharge<82)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-#dis$Suspended.Load <- dis$Suspended.Load/10000
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)80cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)+
-  labs(x="",y=TeX("$日懸浮載輸砂量( ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
-dis <- subset(all.table,Discharge>87&Discharge<92)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-#dis$Suspended.Load <- dis$Suspended.Load/10000
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)90cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
 ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
   geom_bar(position = "dodge",stat="identity")+
   geom_text(aes(label=round(Suspended.Load)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
@@ -1847,295 +1954,30 @@ ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
   theme(text=element_text(size=30,color="black"))+  # 字體大小
   theme(axis.text = element_text(colour = "black"))
 dev.off()
-
-
-
-dis <- subset(all.table,Discharge>115&Discharge<125)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-dis$Suspended.Load <- dis$Suspended.Load/10000
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)120cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load,digits = 2)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)
-  labs(x="",y=TeX("$日懸浮載輸砂量(10^4 ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off() 
-
-dis <- subset(all.table,Discharge>190&Discharge<210)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-dis$Suspended.Load <- dis$Suspended.Load/10000
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)200cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load,digits = 2)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)
-  labs(x="",y=TeX("$日懸浮載輸砂量(10^4 ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off() 
-
-
-dis <- subset(all.table,Discharge>240&Discharge<260)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-dis$Suspended.Load <- dis$Suspended.Load/10000
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)250cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load,digits = 2)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)
-  labs(x="",y=TeX("$日懸浮載輸砂量(10^4 ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off() 
-
-dis <- subset(all.table,Discharge>290&Discharge<310)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-dis$Suspended.Load <- dis$Suspended.Load/10000
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)300cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load,digits = 2)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)
-  labs(x="",y=TeX("$日懸浮載輸砂量(10^4 ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
-dis <- subset(all.table,Discharge>340&Discharge<360)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-dis$Suspended.Load <- dis$Suspended.Load/10000
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)350cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load,digits = 2)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)
-  labs(x="",y=TeX("$日懸浮載輸砂量(10^4 ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
-dis <- subset(all.table,Discharge>440&Discharge<460)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-dis$Suspended.Load <- dis$Suspended.Load/10000
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)450cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load,digits = 2)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)
-  labs(x="",y=TeX("$日懸浮載輸砂量(10^4 ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
-
-dis <- subset(all.table,Discharge>540&Discharge<560)
-dis$Discharge <- paste0(dis$Discharge,"cms")
-dis$Suspended.Load <- dis$Suspended.Load/10000
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)550cms比較.png"),width = 1000, height = 600, units = "px", pointsize = 12)
-ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-  geom_bar(position = "dodge",stat="identity")+
-  geom_text(aes(label=round(Suspended.Load,digits = 2)), position=position_dodge(width=1), size=5.5,vjust=-0.25)+
-  #geom_label_repel(min.segment.length = 0, box.padding = 0.5)
-  labs(x="",y=TeX("$日懸浮載輸砂量(10^4 ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.7,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
 #
 #
-# 2. 觀測輸砂量as histogram；推估輸砂量as density
+# 3. 觀測輸砂量as histogram；推估輸砂量as density
 setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站輸砂量觀測分布與推估分布(小).png"),width = 900, height = 600, units = "px", pointsize = 12)
+png(paste0(year[1],"到",year[y],"年",station_ch,"測站輸砂量觀測分布與推估分布.png"),width = 1000, height = 700, units = "px", pointsize = 12)
 ggplot(data=all.table,aes(x=Suspended.Load))+
-  geom_histogram(data=subset(all.table,group=="觀測資料"),aes(y=..density..,color=group),binwidth = 100, fill="white")+
-  geom_density(data=subset(all.table,group!="觀測資料"),aes(color=group),size=1.2)+
-  xlim(c(0,10000))+
-  labs(y="density",x=TeX("$日懸浮載輸砂量(ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.8,0.75))+ #圖例位置座標
-  theme(legend.title=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站輸砂量觀測分布與推估分布(中).png"),width = 900, height = 600, units = "px", pointsize = 12)
-ggplot(data=all.table,aes(x=Suspended.Load))+
-  geom_histogram(data=subset(all.table,group=="觀測資料"),aes(y=..density..,color=group),binwidth = 1000, fill="white")+
-  geom_density(data=subset(all.table,group!="觀測資料"),aes(color=group),size=1.2)+
+  geom_histogram(data=subset(all.table,group=="觀測資料"),aes(y=..density..,fill=group),binwidth = 100)+
+  stat_density(data=subset(all.table,group!="觀測資料"),aes(color=group),geom="line",position="identity",size=1.2)+
   scale_x_continuous(guide = "prism_minor", #y軸副刻度
-                     limits = c(0, max(all.table$Suspended.Load)),
-                     minor_breaks = seq(10000,50000, 10000))+
-  xlim(c(10000,100000))+
-  labs(y="density",x=TeX("$日懸浮載輸砂量(ton/d)$")) + # 座標軸名稱
+                     limits = c(0,10000),
+                     minor_breaks = seq(0, 10000, 500))+
+  scale_y_continuous(guide = "prism_minor", #y軸副刻度
+                     limits = c(0,0.001),
+                     minor_breaks = seq(0, 0.001,0.00005))+
+  labs(y="Frequency",x=TeX("日懸浮載輸砂量 ($ton/d$)")) + # 座標軸名稱
   theme_bw()+ #白底
-  theme(legend.position = c(0.8,0.75))+ #圖例位置座標
+  scale_fill_manual(values=c("gray"))+
+  scale_color_discrete(breaks =c("觀測資料","率定曲線", "方法 1","方法 2","方法 3","方法 4"))+
+  theme(legend.position = c(0.8,0.7))+ #圖例位置座標
   theme(legend.title=element_blank())+ #隱藏圖例標題
   theme(panel.grid.major = element_blank()) + # 隱藏主要格線
   theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
   theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
+  theme(axis.ticks.length=unit(1.2,"lines"))+
+  theme(text=element_text(size=40,color="black"))+  # 字體大小
   theme(axis.text = element_text(colour = "black"))
 dev.off()
-
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站輸砂量觀測分布與推估分布(大).png"),width = 900, height = 600, units = "px", pointsize = 12)
-ggplot(data=all.table,aes(x=Suspended.Load))+
-  geom_histogram(data=subset(all.table,group=="觀測資料"),aes(y=..density..,color=group),binwidth = 10000, fill="white")+
-  geom_density(data=subset(all.table,group!="觀測資料"),aes(color=group),size=1.2)+
-  xlim(c(100000,1000000))+
-  labs(y="density",x=TeX("$日懸浮載輸砂量(ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.8,0.75))+ #圖例位置座標
-  theme(legend.title=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站輸砂量觀測分布與推估分布(特大).png"),width = 900, height = 600, units = "px", pointsize = 12)
-ggplot(data=all.table,aes(x=Suspended.Load))+
-  geom_histogram(data=subset(all.table,group=="觀測資料"),aes(y=..density..,color=group),binwidth = 100000, fill="white")+
-  geom_density(data=subset(all.table,group!="觀測資料"),aes(color=group),size=1.2)+
-  xlim(c(1000000,4000000))+
-  labs(y="density",x=TeX("$日懸浮載輸砂量(ton/d)$")) + # 座標軸名稱
-  theme_bw()+ #白底
-  theme(legend.position = c(0.8,0.75))+ #圖例位置座標
-  theme(legend.title=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
-
-#
-givenQ <- c(9) # 設定條件流量大小：
-min.Qs <- get(paste0("q",margin.dist[2]))(r0.001,margin.par[margin.num[2],3], margin.par[margin.num[2],4])
-r0.995 <- c(0.995)
-max.Qs <- get(paste0("q",margin.dist[2]))(r0.995,margin.par[margin.num[2],3], margin.par[margin.num[2],4])
-small.Qs <- seq(from=round(min.Qs),to=99999,by=1)
-middle.Qs <- append(small.Qs,seq(from=100000,to=999999,by=10))
-all.Qs <- append(middle.Qs,seq(from=1000000,to=max.Qs,by=100))
-
-## caculate conditional PDF of L given the q0
-F_Q <- get(paste0("p",margin.dist[1]))(givenQ, margin.par[margin.num[1],1], margin.par[margin.num[1],2])
-F_L <- get(paste0("p",margin.dist[2]))(all.Qs, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
-f_L <- get(paste0("d",margin.dist[2]))(all.Qs, margin.par[margin.num[2],3], margin.par[margin.num[2],4])
-con.pdf <-get(paste0(subset(candidate.copula,number==family.num)[,2],"copula.pdf"))(F_Q,F_L,cop$par)*f_L
-
-# plot conditional PDF of L given the q0
-con.table <- data.frame(con.pdf,all.Qs)
-setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-png(paste0(year[1],"到",year[y],"年",station_ch,"測站Q=",givenQ,"cms下conditional PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
-ggplot(con.table,aes(x=con.pdf,y=all.Qs))+
-  geom_path(size=1.5)+
-  labs(x="PDF函數值",y="輸砂量Qs (公噸)") + # 座標軸名稱
-  ylim(0,6000) +
-  theme_bw()+ #白底
-  theme(legend.position = c(0.8,0.75))+ #圖例位置座標
-  #theme(legend.text=element_blank())+ #隱藏圖例標題
-  theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-  theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-  theme(prism.ticks.length=unit(.7,"lines"))+
-  theme(axis.ticks.length=unit(.3,"lines"))+
-  theme(text=element_text(size=30,color="black"))+  # 字體大小
-  theme(axis.text = element_text(colour = "black"))
-dev.off()
-
-
-# setwd(paste0("F:/R_output/",station,"/vinecopula")) # 請修改儲存路徑：
-# png(paste0(year[1],"到",year[y],"年",station_ch,"測站Q=",givenQ,"cms下conditional PDF.png"),width = 1250, height = 700, units = "px", pointsize = 12)
-# ggplot(dis,aes(x=group,y=Suspended.Load,fill=Discharge,label=Suspended.Load))+
-#   geom_bar(position = "dodge",stat="identity")+
-#   geom_line(aes(x=con.pdf,y=Suspended.Load),size=1.5)+
-#   geom_vline(data=dis,aes(xintercept=Suspended.Load,color=group),size=1)
-#   geom_text(aes(label=round(Suspended.Load)), position=position_dodge(width=1), size=7,vjust=-0.25)
-#   #geom_label_repel(min.segment.length = 0, box.padding = 0.5)
-#   labs(x="",y=TeX("$日懸浮載輸砂量(10^4 公噸)$")) + # 座標軸名稱
-#   
-#   
-#   
-#   #geom_label_repel(aes(x=Suspended.Load,label=Suspended.Load),min.segment.length = 0, box.padding = 0.5)+
-#   # geom_text(data=dis, aes(x = Suspended.Load, label = Suspended.Load), 
-#   #           y = 0.1, angle = 90, vjust = -0.2) +
-#   labs(x="輸砂量Qs (公噸)",y="PDF函數值") + # 座標軸名稱
-#   xlim(0,6000) +
-#   theme_bw()+ #白底
-#   theme(legend.position = c(0.8,0.75))+ #圖例位置座標
-#   #theme(legend.text=element_blank())+ #隱藏圖例標題
-#   theme(panel.grid.major = element_blank()) + # 隱藏主要格線
-#   theme(panel.grid.minor = element_blank()) + # 隱藏次要格線
-#   theme(prism.ticks.length=unit(.7,"lines"))+
-#   theme(axis.ticks.length=unit(.3,"lines"))+
-#   theme(text=element_text(size=30,color="black"))+  # 字體大小
-#   theme(axis.text = element_text(colour = "black"))
-# dev.off()
