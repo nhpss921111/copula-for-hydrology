@@ -67,10 +67,11 @@ year <- c(1960:2019) # 1960才開始有SSL的紀錄
 input_file_path <- paste0("F:/copula/",station,"/discharge+SSL/")
 output_file_path <- paste0("F:/copula/",station,"/discharge+SSL/")
 # ==================================================
-setwd(input_file_path)
+
 input <- c(paste0(year,".csv"))
 data <- c() #放所有資料的表格
 for(y in 1:length(year)){
+  setwd(input_file_path)
   year.data <- read.csv(file.path(getwd(),input[y]),header = T)
   data <- rbind(data,year.data)
 }
