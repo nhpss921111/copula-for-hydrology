@@ -13,20 +13,37 @@ Master's thesis：[以聯結函數補遺日懸浮載輸砂量](https://thesis.li
 
 ### 流量資料(日觀測資料)
 1. [民國89年 日平均流量](https://gweb.wra.gov.tw/wrhygis/ebooks/ebook/ebook/hyb2000/2420H019.HTM)
-2. ![縮圖](https://i.imgur.com/eUn5Oy3.png)
+2. 民國108年 日平均流量
+![](https://i.imgur.com/eUn5Oy3.png)
 ### 同時有流量及輸砂量資料(一個月約只有2~4筆觀測資料)
 1. [民國89年 懸移質實測紀錄](https://gweb.wra.gov.tw/wrhygis/ebooks/ebook/ebook/hyb2000/2420H019.HTML)
-2. ![](https://i.imgur.com/WpKNNwN.png)
+2. 民國108年 懸移質實測紀錄
+![](https://i.imgur.com/WpKNNwN.png)
 
+
+
+# 註：以下程式碼之讀檔路徑與寫檔路徑需自行更改
 
 ## 蒐集資料
-1. 蒐集水文年報裡流量和輸砂量的資料
-  * 2000年之前的資料為網頁格式(使用爬蟲擷取資料)使用 [crawling4discharge.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/crawling4discharge.R)
-  * 2001年之後的資料為PDF檔(一年一年複製資料到記事本)使用 [txt2csv4Q.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/txt2csv4Q.R)
 
-2. 蒐集水文年報裡流量和輸砂量的資料
-  * 2001年之後的資料為PDF檔(一年一年複製資料到記事本)使用 [txt2csv.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/txt2csv.R)
-  * 2000年之前的資料為網頁格式(使用爬蟲擷取資料)使用 [crawling.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/crawling.R)
+
+### 流量的資料
+1. 2000年之前的資料為網頁格式(使用爬蟲擷取資料)使用 [crawling4discharge.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/crawling4discharge.R)
+存檔路徑 F:/R_output/crawling/JEN-SHOU BRIDGE/discharge/2000.csv
+2. 2001年之後的資料為PDF檔(一年一年複製資料到記事本)使用 [txt2csv4Q.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/txt2csv4Q.R)
+存檔路徑 F:/R_output/JEN-SHOU BRIDGE/discharge/2019.csv
+
+* PDF檔複製範圍：
+![](https://i.imgur.com/aTcKLfC.png)
+
+### 流量及輸砂量的資料
+
+1. 2000年之前的資料為網頁格式(使用爬蟲擷取資料)使用 [crawling.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/crawling.R)
+存檔路徑 F:/R_output/crawling/JEN-SHOU BRIDGE/discharge+SSL/2000.csv
+2. 2001年之後的資料為PDF檔(一年一年複製資料到記事本)使用 [txt2csv.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/txt2csv.R)
+* PDF檔複製範圍：
+![](https://i.imgur.com/Jg8GdWV.png)
+
 
 ## 清洗資料
 
