@@ -38,8 +38,8 @@
 #year <- c(2001,2004,2005,2007:2019) 
 # ========================================
 rm(list = ls()) # 清除資料
-station <- c("HSIU-LUNG")
-year <- c(2001,2004,2005,2007:2019) # 請輸入年分：
+station <- c("JEN-SHOU BRIDGE") #花蓮溪-仁壽橋
+year <- c(2001:2019) 
 setwd(paste0("F:/R_reading/",station,"/from_pdf/discharge"))
 input <- c(paste0(year,".txt")) 
 output <- c(paste0(year,".csv")) 
