@@ -1,5 +1,5 @@
 # 來源：爬蟲，水文年報(2000年以前)  2019/11/02 BY奕廷學長
-# 爬取水文年報中測站的日平均流量(cms)
+# 爬取水文年報之測站的日平均流量(cms)
 # 全部抓下來後，再清洗資料
 # 開始撰寫日期：2020/07/02
 # 完成撰寫日期：2021/03/04
@@ -8,7 +8,7 @@ library(rvest)
 library(magrittr)
 library(jsonlite)
 output <- "y"
-# ---- 測站資料放置區 ----
+# ========================================
 #station <- c("CHIA-YUANG")
 #station.num <- c("2560H017") #蘭陽溪-家源橋
 #year <- c(1974:2000) # 1974才開始有SSL的紀錄
@@ -20,12 +20,52 @@ output <- "y"
 #station <- c("NEI-MAO-PU")
 #station.num <- c("1510H049") #濁水溪-內茅埔
 #year <- c(1972:2000) # 1972才開始有SSL的紀錄
+#
+#station <- c("JEN-SHOU BRIDGE")
+#station.num <- c("2420H019") #花蓮溪-仁壽橋
+#year <- c(1960:2000) # 1960才開始有SSL的紀錄
+#
+#station <- c("LIU-KWEI")
+#station.num <- c("1730H039") #高屏溪-六龜
+#year <- c(1982:2000) # 1960才開始有SSL的紀錄
+#
+#station <- c("NEI-WAN")
+#station.num <- c("1300H013")# 頭前溪-內灣
+#year <- c(1971:2000) # 1971才開始有SSL的紀錄
+#
+#station <- c("JEIN-KUO BRIDGE")
+#station.num <- c("1300H017")# 頭前溪-經國橋
+#year <- c(1990:2000) # 1990才開始有SSL的紀錄
+#
+#station.num <- c("2560H006")
+#station <- c("LAN-YANG BRIDGE") # 蘭陽溪-蘭陽大橋
+#year <- c(1949:2000) # 1949才開始有SSL的紀錄
+#
+#station.num <- c("1140H049")
+#station <- c("HENG CHI") #三峽河-橫溪
+#year <- c(1974:2000) 
+#
+#station.num <- c("1140H066")
+#station <- c("HSIU-LUNG") #新店溪-秀朗
+#year <- c(1970:2000) 
+#
+#station.num <- c("1340H009")
+#station <- c("YUN HSIN BRIDGE") #中港溪-永興橋
+#year <- c(1986:2000) 
+#
+#station.num <- c("1400H009")
+#station <- c("I-LI") #大安溪-義里
+#year <- c(1966:2000) 
+#
+#station.num <- c("1730H031")
+#station <- c("LAO-NUNG")#荖濃(新發大橋)
+#year <- c(1956:2000) 
+# ========================================
 #----起始資料
 #測站編號
-
-station <- c("NEI-MAO-PU")
-station.num <- c("1510H049") #濁水溪-內茅埔
-year <- c(1972:2000) 
+station.num <- c("1730H031")
+station <- c("LAO-NUNG")#荖濃(新發大橋)
+year <- c(1956:2000) 
 #
 #----
 # 先建立錯誤函數：
