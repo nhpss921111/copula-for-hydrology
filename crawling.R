@@ -3,32 +3,75 @@
 # 所以需要每爬完一年就儲存
 # 存好的檔案再丟到"爬蟲資料整理.R"清洗資料
 # 開始撰寫日期：2020/07/02
-# 完成撰寫日期：2021/03/04
+# 完成撰寫日期：2021/03/08
 rm(list = ls())
 library(rvest)
 library(magrittr)
 library(jsonlite)
 library(dplyr)
-output <- "y"
-# ---- 測站資料放置區 ----
+output <- "y" 
+# ========================================
 #station <- c("CHIA-YUANG")
 #station.num <- c("2560H017") #蘭陽溪-家源橋
-#year <- c(1974:2000) # 1974才開始有SSL的紀錄
+#year <- c(1974:2000)
 #
 #station <- c("CHUNYUN BRIDGE")
 #station.num <- c("1510H057") #濁水溪-彰雲橋
-#year <- c(1987:2000) # 1987才開始有SSL的紀錄
+#year <- c(1987:2000) 
 #
 #station <- c("NEI-MAO-PU")
 #station.num <- c("1510H049") #濁水溪-內茅埔
-#year <- c(1972:2000) # 1972才開始有SSL的紀錄
+#year <- c(1972:2000)
+#
+#station <- c("JEN-SHOU BRIDGE")
+#station.num <- c("2420H019") #花蓮溪-仁壽橋 
+#year <- c(1960:2000) 
+#
+#station <- c("LIU-KWEI")
+#station.num <- c("1730H039") #高屏溪-六龜
+#year <- c(1982:2000) 
+#
+#station <- c("NEI-WAN")
+#station.num <- c("1300H013")# 頭前溪-內灣
+#year <- c(1971:2000) 
 
+#station <- c("JEIN-KUO BRIDGE")
+#station.num <- c("1300H017")# 頭前溪-經國橋
+#year <- c(1990:2000) 
+#
+#station.num <- c("2560H006")
+#station <- c("LAN-YANG BRIDGE") # 蘭陽溪-蘭陽大橋
+#year <- c(1949:2000) 
+#
+#station.num <- c("1140H049")
+#station <- c("HENG CHI") #三峽河-橫溪
+#year <- c(1974:2000) 
+#
+#station.num <- c("1140H066")
+#station <- c("HSIU-LUNG") #新店溪-秀朗
+#year <- c(1970:2000) 
+#
+#station.num <- c("1340H009")
+#station <- c("YUN HSIN BRIDGE") #中港溪-永興橋
+#year <- c(1986:2000) 
+#
+#station.num <- c("1400H009")
+#station <- c("I-LI") #大安溪-義里
+#year <- c(1966:2000) 
+#
+#station.num <- c("1730H031")
+#station <- c("LAO-NUNG")#荖濃(新發大橋)
+#year <- c(1956:2000) 
+#
+#station.num <- c("1730H043")
+#station <- c("LI-LIN BRIDGE")#里嶺大橋
+#year <- c(1991:2000) 
+# ========================================
 #----起始資料
 #測站編號
-station <- c("NEI-MAO-PU")
-station.num <- c("1510H049") #濁水溪-內茅埔
-year <- c(1972:2000) # 1972才開始有SSL的紀錄
-#
+station <- c("JEN-SHOU BRIDGE")
+station.num <- c("2420H019") #花蓮溪-仁壽橋 
+year <- c(1960:2000) 
 #----
 # 先建立錯誤函數：
 # 1.空白值將錯誤，建立tryCatch將空白或缺測值轉為0
@@ -55,6 +98,7 @@ daily.rec.err.func <- function(x){
 }
 #----
 year.data <- c()
+
 #抓取每年資料
 for(s in c(1:length(station.num))){
   
@@ -71,6 +115,7 @@ for(s in c(1:length(station.num))){
     year.data <- c(yr, data)
     year.data <- year.data[-2:-24] # 刪除多餘欄位
     year.data <- as.data.frame(year.data)
+    
     #輸出csv
     if(output == "y"){
       file <- paste0("F:/R_output/crawling/",station,"/discharge+SSL/",yr,".csv")
