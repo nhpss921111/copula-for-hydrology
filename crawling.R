@@ -71,7 +71,8 @@ output <- "y"
 station <- c("JEN-SHOU BRIDGE")
 station.num <- c("2420H019") #花蓮溪-仁壽橋 
 year <- c(1960:2000) 
-output_file_path <- paste0("F:/R_output/",station,"/SSL_arranged/")
+output_file_path <- paste0("F:/copula/",station,"/discharge+SSL/")
+
 # ===================================================================
 
 # 先建立錯誤函數：
