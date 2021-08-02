@@ -48,8 +48,8 @@
 #year <- c(2001:2004,2007:2019) 
 # ========================================
 rm(list = ls()) # 清除資料
-station <- c("LI-LIN BRIDGE")#里嶺大橋
-year <- c(2001:2004,2007:2019) 
+station <- c("JEN-SHOU BRIDGE") #花蓮溪-仁壽橋
+year <- c(2001:2019) # 1960才開始有SSL的紀錄
 setwd(paste0("F:/R_reading/",station,"/from_pdf/discharge+SSL/")) 
 input <- c(paste0(year,".txt")) 
 output <- c(paste0(year,".csv")) 
