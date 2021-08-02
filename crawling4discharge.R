@@ -65,7 +65,7 @@ output <- "y"
 station <- c("JEN-SHOU BRIDGE")
 station.num <- c("2420H019") #花蓮溪-仁壽橋
 year <- c(1960:2000) # 1960才開始有SSL的紀錄
-output_file_path <- paste0("F:/R_output/",station,"/discharge/")
+output_file_path <- paste0("F:/copula/",station,"/discharge/")
 # ===================================================================
 
 # 先建立錯誤函數：
