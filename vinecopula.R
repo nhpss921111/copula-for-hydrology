@@ -69,10 +69,10 @@ build <- ("deterministic.1") # 選擇模式率定的方法
 MD.input <- c(paste0(year,"QandQs.csv"))
 output <- c(paste0(year,"imp.csv"))
 
-# 請設定讀檔路徑："F:/R_reading/JEN-SHOU BRIDGE/missingdata/"
-input_file_path <- paste0("F:/R_reading/",station,"/missingdata/")
-# 請設定存檔路徑："F:/R_output/JEN-SHOU BRIDGE/vinecopula/"
-output_file_path <- paste0("F:/R_output/",station,"/test/")
+# 請設定讀檔路徑："F:/copula/JEN-SHOU BRIDGE/missingdata/"
+input_file_path <- paste0("F:/copula/",station,"/missingdata/")
+# 請設定存檔路徑："F:/copula/JEN-SHOU BRIDGE/result/"
+output_file_path <- paste0("F:/copula/",station,"/result/")
 
 # ===================================================================================
 
