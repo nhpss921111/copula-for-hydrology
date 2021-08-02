@@ -1,7 +1,10 @@
 # research
-論文程式碼
 
-以聯結函數建立流量和輸砂量雙變量之機率模型
+paper published in water of MDPI : [Copula-Based Infilling Methods for Daily Suspended Sediment Loads](https://www.mdpi.com/2073-4441/13/12/1701/htm)
+
+master's thesis：[以聯結函數補遺日懸浮載輸砂量](https://thesis.lib.ncku.edu.tw/thesis/detail/bee9602ce9debe703eaa908b5075e30b/?seq=1)
+
+
 
 ## code使用方法
 
