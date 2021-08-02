@@ -50,10 +50,14 @@
 rm(list = ls()) # 清除資料
 station <- c("JEN-SHOU BRIDGE") #花蓮溪-仁壽橋
 year <- c(2001:2019) # 1960才開始有SSL的紀錄
-setwd(paste0("F:/R_reading/",station,"/from_pdf/discharge+SSL/")) 
+input_file_path <- paste0("F:/copula/",station,"/from_pdf/discharge+SSL")
+output_file_path <- paste0("F:/copula/",station,"/discharge+SSL/")
+
+
 input <- c(paste0(year,".txt")) 
 output <- c(paste0(year,".csv")) 
 for(i in c(1:length(input))){ 
+  setwd(input_file_path) 
   data <- read.table(file.path(getwd(),input[i]),fill=TRUE) #按年份讀取資料
   # 資料解析
   sus1 <- data[,1:6] #把資料分成sus1和sus2
@@ -65,6 +69,6 @@ for(i in c(1:length(input))){
   sus.table[,1] <- year[i]
   colnames(sus.table) <- c("Year","Month","Day","Discharge",
                            "Sediment Content","Suspended Load") #新增欄位名稱
-  file <- paste(paste0("F:/R_output/",station,"/SSL_arranged/", output[i], sep="")) #存檔路徑
+  file <- paste(output_file_path, output[i], sep="") #存檔路徑
   write.csv(sus.table,file) #結果寫到csv裡面
 }
