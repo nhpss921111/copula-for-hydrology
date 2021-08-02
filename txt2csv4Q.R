@@ -15,10 +15,31 @@
 #
 #station <- c("NEI-MAO-PU") #內茅埔
 #year <- c(2001,2003:2019) 
+#
+#station <- c("JEN-SHOU BRIDGE") #花蓮溪-仁壽橋
+#year <- c(2001:2019) # 
+#
+#station <- c("LIU-KWEI")#高屏溪-六龜
+#year <- c(2001:2009,2011:2019) 
+#
+#station <- c("NEI-WAN")# 頭前溪-內灣
+#year <- c(2001:2019) 
+#
+#station <- c("JEIN-KUO BRIDGE")頭前溪-經國橋
+#year <- c(2001:2019) 
+#
+#station <- c("LAN-YANG BRIDGE")蘭陽溪-蘭陽大橋
+#year <- c(2002:2019)  
+#
+#station <- c("HENG CHI") #三峽河-橫溪
+#year <- c(2001:2005,2007:2019) 
+#
+#station <- c("HSIU-LUNG") #新店溪-秀朗
+#year <- c(2001,2004,2005,2007:2019) 
 # ========================================
 rm(list = ls()) # 清除資料
-station <- c("NEI-MAO-PU")
-year <- c(2001,2003:2019) # 請輸入年分：
+station <- c("HSIU-LUNG")
+year <- c(2001,2004,2005,2007:2019) # 請輸入年分：
 setwd(paste0("F:/R_reading/",station,"/from_pdf/discharge"))
 input <- c(paste0(year,".txt")) 
 output <- c(paste0(year,".csv")) 
