@@ -66,7 +66,6 @@ output <- "y"
 station <- c("JEN-SHOU BRIDGE")
 station.num <- c("2420H019") #花蓮溪-仁壽橋
 year <- c(1960:2000) # 1960才開始有SSL的紀錄
-#
 #----
 # 先建立錯誤函數：
 # 1.空白值將錯誤，建立tryCatch將空白或缺測值轉為0
@@ -125,6 +124,6 @@ for (i in 1:length(year)){
                            "七月","八月","九月","十月","十一","十二月")
   #輸出csv
   if(output == "y"){
-    write.csv(year.data, file = paste0("F:/R_output/crawling/",station,"/discharge/",year[i], ".csv"))}
+    write.csv(year.data, file = paste0("F:/R_output/",station,"/discharge/",year[i], ".csv"))}
 }
 
