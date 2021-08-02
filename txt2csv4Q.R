@@ -38,18 +38,23 @@
 #year <- c(2001,2004,2005,2007:2019) 
 # ========================================
 rm(list = ls()) # 清除資料
+
+# =============== 參數設定區 ======================================
 station <- c("JEN-SHOU BRIDGE") #花蓮溪-仁壽橋
 year <- c(2001:2019) 
-setwd(paste0("F:/R_reading/",station,"/from_pdf/discharge"))
+input_file_path <- paste0("F:/copula/",station,"/from_pdf/discharge")
+output_file_path <- paste0("F:/copula/",station,"/discharge/")
+# ==================================================================
 input <- c(paste0(year,".txt")) 
 output <- c(paste0(year,".csv")) 
 for(i in c(1:length(input))){ 
+  setwd(input_file_path)
   data <- read.table(file.path(getwd(),input[i]),fill=TRUE) #按年份讀取資料
   # 資料解析
   #data[data == 0] <- NA # 把"0"當成NA
   data <- cbind(year[i],data)
   colnames(data) <- c("年","日","一月","二月","三月","四月","五月","六月",
                       "七月","八月","九月","十月","十一","十二月")
-  file <- paste0("F:/R_output/",station,"/discharge/", output[i], sep="") #存檔路徑
+  file <- paste0(output_file_path, output[i], sep="") #存檔路徑
   write.csv(data,file) #結果寫到csv裡面
 }
