@@ -2,21 +2,28 @@
 # 開始撰寫時間：2020/11/10
 # 完成撰寫時間：2021/03/08
 # 將"流量資料"與"流量及輸砂量資料"合併
-# ============================================
+# =======================================================
 # 家源橋(CHIA-YUANG)：year <- c(1974:2009,2012:2019)
 # 彰雲橋(CHUNYUN BRIDGE)：year <- c(1987:2019)
 # 內茅埔(NEI-MAO-PU)：year <- c(1972:2001,2003:2019)
 # 仁壽橋(JEN-SHOU BRIDGE)：year <- c(1960:2019)
-# ===========================================
+# =======================================================
 library(dplyr)
 rm(list=ls())
+
+# =================== 參數設定區 ====================================
 station <- c("JEN-SHOU BRIDGE")
 year <- c(1960:2019)
+q_input_file_path <- paste0("F:/copula/",station,"/discharge")
+l_input_file_path <- paste0("F:/copula/",station,"/discharge+SSL")
+output_file_path <- paste0("F:/copula/",station,"/missingdata/")
+# ===================================================================
+
 month <- c(2:12) # loop從2月開始跑
 input <- c(paste0(year,".csv"))
 
 for (y in 1:length(input)){ 
-  setwd(paste0("F:/R_reading/",station,"/discharge"))
+  setwd(q_input_file_path)
   data <- read.csv(file.path(getwd(),input[y])) # 第y年所有流量資料
   data <- data[,-1] # 整理多餘的行數
   data <- as.data.frame(data)
@@ -26,7 +33,7 @@ for (y in 1:length(input)){
   Q <- data[,(2+1)] # 選取第1月的流量
   month.data <- as.data.frame(cbind(data[,1],1,data[,2],Q,0)) # 整理表格
   colnames(month.data) <- c("Year","Month","Day","Discharge","Suspended.Load")
-  setwd(paste0("F:/R_reading/",station,"/SSL_arranged"))
+  setwd(l_input_file_path)
   SSL <- read.csv(file.path(getwd(),paste0(1,"month.csv"))) # 讀取第1月流量及輸砂量資料
   SSL <- SSL[,-1] # 整理表格
   SSL <- SSL[,-5] # 整理表格
@@ -41,7 +48,7 @@ for (y in 1:length(input)){
     Q <- data[,(2+m)] # 選取第m月的流量
     month.data <- as.data.frame(cbind(data[,1],m,data[,2],Q,0)) # 整理表格
     colnames(month.data) <- c("Year","Month","Day","Discharge","Suspended.Load")
-    setwd(paste0("F:/R_reading/",station,"/SSL_arranged"))
+    setwd(l_input_file_path)
     SSL <- read.csv(file.path(getwd(),paste0(m,"month.csv"))) # 讀取第m月流量及輸砂量資料
     SSL <- SSL[,-1] # 整理表格
     SSL <- SSL[,-5] # 整理表格
@@ -53,6 +60,6 @@ for (y in 1:length(input)){
     cb.data <- rbind(cb.data,cb.data.new)
   }
   cb.data$Discharge[is.na(cb.data$Discharge)] <- 0
-  file <- paste0("F:/R_output/",station,"/missingdata/", paste0(year[y],"QandQs.csv"), sep="") #存檔路徑  
+  file <- paste0(output_file_path, paste0(year[y],"QandQs.csv"), sep="") #存檔路徑  
   write.csv(cb.data,file) #結果寫到csv裡面
 }
