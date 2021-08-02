@@ -36,8 +36,8 @@ library(dynatopmodel) #Nash-Sutcliffe Efficiency
 library(hydroGOF)
 library(ggpmisc) # ggplot peak point
 
-# 測站對照表
-# ================================================================================================
+# 
+# =============================== 測站對照表 =========================================
 # 家源橋("CHIA-YUANG")：       year <- c(1974:2019)                      都沒過
 # 彰雲橋("CHUNYUN BRIDGE")：   year <- c(1987:2019)                      copula沒過CVM
 # 內茅埔("NEI-MAO-PU")：       year <- c(1972:2001,2003:2019)            Q沒過copula沒過
@@ -51,22 +51,20 @@ library(ggpmisc) # ggplot peak point
 # 義里("I-LI")：               year <- c(1966:2003,2006:2010,2013:2019)  Qs沒過copula沒過
 # 荖濃(新發大橋)("LAO-NUNG")： year <- c(1956:2009)                      Qs沒過copula沒過
 # 里嶺大橋("LI-LIN BRIDGE")：  year <- c(1991:2004,2007:2019)            copula沒過CVM
-# ================================================================================================
+# ===================================================================================
 
-# ===================參數設定區(執行前請先設定完成)==================================
+# ================== 參數設定區(執行前請先設定完成) =================================
 station <- c("JEN-SHOU BRIDGE") # 測站名稱
 station_ch <-c("仁壽橋")
 year <- c(1960:2019) # 年分
 
-group.number <- c(9) # 分組的組數(目前只有9組)
-log.group.number <- c(9) # 分組的組數(目前只有9組)
-set.seed(100)
+set.seed(100) # 
 perc.mis <- 0.3 # 多少比例的資料當成NA ?
 
-build <- ("deterministic.1") # 以下三行說明輸入參數之差異
+build <- ("deterministic.1") # 選擇模式率定的方法
 # deterministic.1 (依比例以完整年資料建立) / 
 # deterministic (依照比例切分資料，實際切割點可能不在年尾)/ 
-# stochastic(隨機取樣建立模式)
+# stochastic (隨機取樣建立模式)
 
 MD.input <- c(paste0(year,"QandQs.csv"))
 output <- c(paste0(year,"imp.csv"))
@@ -189,40 +187,6 @@ if (build == "deterministic.1"){
 }
 
 # -------------------------------------------------------------------------------------------------
-
-# 分組的目的：讓CoImp計算用
-if (group.number==9){
-  #  -------------- 決定流量分組範圍 (來源：log.data) ---------------
-  # group 1： 0% ~  20%
-  # group 2：20% ~  40%
-  # group 3：40% ~  60%
-  # group 4：60% ~  80%
-  # group 5：80% ~  90%
-  # group 6：90% ~  95%
-  # group 8：95% ~  98%
-  # group 8：98% ~  100%
-  
-  rank.data <- cbind(rm.ob.data,rank(rm.ob.data$Discharge))
-  persent <- (rank.data$`rank(rm.ob.data$Discharge)`) / length(rank.data$Discharge)
-  per.data <- cbind(rank.data,persent)
-  
-  data.1 <- data.frame(subset(per.data, persent<=0.2),group="group1")
-  data.2 <- data.frame(subset(per.data, persent>0.2 & persent<=0.4),group="group2")
-  data.3 <- data.frame(subset(per.data, persent>0.4 & persent<=0.6),group="group3")
-  data.4 <- data.frame(subset(per.data, persent>0.6 & persent<=0.8),group="group4")
-  data.5 <- data.frame(subset(per.data, persent>0.8 & persent<=0.9),group="group5")
-  data.6 <- data.frame(subset(per.data, persent>0.9 & persent<=0.96),group="group6")
-  data.7 <- data.frame(subset(per.data, persent>0.96 & persent<=0.98),group="group7")
-  data.8 <- data.frame(subset(per.data, persent>0.98),group="group8")
-  
-  data.group <- rbind(data.1, data.2, data.3,data.4, 
-                      data.5, data.6,data.7, data.8)
-  
-  group.BC <- c(0,max(data.1$Discharge),max(data.2$Discharge),max(data.3$Discharge),
-                max(data.4$Discharge),max(data.5$Discharge),max(data.6$Discharge),
-                max(data.7$Discharge),max(data.8$Discharge))
-  persent.BC <- c(0,20,40,60,80,90,95,98,100)
-}
 
 ggplot(data=MD.rmNA)+
   geom_point(aes(x=Discharge,y=Suspended.Load))+
@@ -729,7 +693,7 @@ dev.off()
 #     ((-log(u))^theta+(-log(v))^theta)^(2/theta-2) *
 #     ((theta-1)*((-log(u))^theta+(-log(v))^theta)^(-1/theta)+1)
 # }
-# ------- 程式從CDF 對u,v微分成PDF -----------
+# ------- 由程式從CDF 對u,v微分成PDF -----------
 gumbelcopula.cdf <- expression(exp(-((-log(u))^theta+(-log(v))^theta)^(1/theta)))
 D(D(gumbelcopula.cdf,"v"),"u")
 gumbelcopula.pdf <- function(u,v,theta){
@@ -1518,6 +1482,7 @@ write.csv(error.table,file)
 #
 
 # 1. 以不同流量分組比較誤差指標
+
 # ---- 1.1率定+驗證時期 -------
 Q0.3 <- sort(MD$Discharge)[round(length(MD$Discharge)*0.3)]
 Q0.7 <- sort(MD$Discharge)[round(length(MD$Discharge)*0.7)]
@@ -1796,7 +1761,12 @@ ggplot(all.table,aes(x=Discharge,y=Suspended.Load/10000,shape=group,color=group)
   theme(axis.text = element_text(colour = "black"))
 dev.off()
 
-#推估值與觀測值
+# 以不同流量大小分組比較推估值與觀測值
+# group0： 0 % ~ 100 % ()
+# group1： 0 % ~  30 % ()
+# group2：30 % ~  70 %
+# group3：70 % ~ 100 %
+
 i <- 2 # 1:0%th~30%th / 2:30%th~70%th
 setwd(output_file_path) # 請修改儲存路徑：
 png(paste0(year[1],"到",year[y],"年",station_ch,"測站討論(5種推估方法)第",i,"組.png"),width = 800, height = 600, units = "px", pointsize = 12)
