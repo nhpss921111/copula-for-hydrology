@@ -66,13 +66,14 @@ output <- "y"
 #station.num <- c("1730H043")
 #station <- c("LI-LIN BRIDGE")#里嶺大橋
 #year <- c(1991:2000) 
-# ========================================
-#----起始資料
-#測站編號
+
+# ========================= 參數設定區 ==============================
 station <- c("JEN-SHOU BRIDGE")
 station.num <- c("2420H019") #花蓮溪-仁壽橋 
 year <- c(1960:2000) 
-#----
+output_file_path <- paste0("F:/R_output/",station,"/SSL_arranged/")
+# ===================================================================
+
 # 先建立錯誤函數：
 # 1.空白值將錯誤，建立tryCatch將空白或缺測值轉為0
 get.rec.err.func<- function(x){
@@ -139,5 +140,5 @@ for (n in c(1:length(year))){
   new.data[,1] <- year[n]
   colnames(new.data) <- c("Year","Month","Day","Discharge",
                           "Sediment Content","Suspended Load")
-  write.csv(new.data, file = paste0("F:/R_output/",station,"/SSL_arranged/",year[n], ".csv"))
+  write.csv(new.data, file = paste0(output_file_path, year[n], ".csv"))
 }
