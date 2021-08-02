@@ -116,30 +116,23 @@ for(s in c(1:length(station.num))){
     }
     year.data <- c(yr, data)
     year.data <- year.data[-2:-24] # 刪除多餘欄位
-    #year.data <- as.data.frame(year.data)
-    
-    # #輸出csv
-    # if(output == "y"){
-    #   file <- paste0("F:/R_output/crawling/",station,"/discharge+SSL/",yr,".csv")
-    #   write.csv(year.data, file)
-    # }
+
+    # 清理資料
+    year.data <- as.numeric(year.data)
+    arrange.data <- c()
+    i <- 1
+    while (i <300){
+      slice.data <- year.data[(i+1):(i+6)] #每一天的資料
+      arrange.data <- rbind(arrange.data,slice.data)
+      colnames(arrange.data) <- c("No.","Month","Day","Discharge",
+                                  "Sediment Content","Suspended Load")
+      i <- i+6
+    }
+    rm.data <- as.data.frame(arrange.data[complete.cases(arrange.data), ])
+    new.data <- arrange(rm.data, No.) #依照No.欄位，由小到大排序
+    new.data[,1] <- yr
+    colnames(new.data) <- c("Year","Month","Day","Discharge",
+                            "Sediment Content","Suspended Load")
+    write.csv(new.data, file = paste0(output_file_path, yr, ".csv"))
   }
-}
-for (n in c(1:length(year))){
-  ini.data <- year.data[2:7]
-  arrange.data <- c()
-  i <- 1
-  while (i <300){
-    slice.data <- year.data[(i+1):(i+6)] #每一天的資料
-    arrange.data <- rbind(arrange.data,slice.data)
-    colnames(arrange.data) <- c("No.","Month","Day","Discharge",
-                                "Sediment Content","Suspended Load")
-    i <- i+6
-  }
-  rm.data <- arrange.data[complete.cases(arrange.data), ]
-  new.data <- arrange(as.data.frame(rm.data),No.) #依照No.欄位，由小到大排序
-  new.data[,1] <- year[n]
-  colnames(new.data) <- c("Year","Month","Day","Discharge",
-                          "Sediment Content","Suspended Load")
-  write.csv(new.data, file = paste0(output_file_path, year[n], ".csv"))
 }
