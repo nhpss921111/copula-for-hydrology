@@ -53,7 +53,7 @@ Master's thesis：[以聯結函數補遺日懸浮載輸砂量](https://thesis.li
 
 ![](https://i.imgur.com/2Q5gduE.png)
 
-### 1.2 蒐集流量及輸砂量-執行步驟
+### 1.2 蒐集輸砂量-執行步驟
 #### 1. 2000年之前的資料為網頁格式(使用爬蟲擷取資料)使用 [crawling.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/crawling.R)
 * 寫檔路徑 F:/copula/JEN-SHOU BRIDGE/discharge+SSL/2000.csv
 #### 2. 2001年之後的資料為PDF檔(一年一年複製資料到記事本)使用 [txt2csv.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/txt2csv.R)
@@ -69,7 +69,7 @@ Master's thesis：[以聯結函數補遺日懸浮載輸砂量](https://thesis.li
 ![](https://i.imgur.com/EnT4c9P.png)
 
 
-#### 3. 蒐集流量及輸砂量-結果
+#### 3. 蒐集輸砂量-結果
 * 寫檔路徑 F:/copula/JEN-SHOU BRIDGE/discharge+SSL/
 
 * excel結果範例圖(2000.csv)
@@ -80,9 +80,9 @@ Master's thesis：[以聯結函數補遺日懸浮載輸砂量](https://thesis.li
 
 ![](https://i.imgur.com/9P2elKC.png)
 
-### 1.3 將同時有流量及輸砂量的年資料換成月資料
+### 1.3 將輸砂量的年資料換成月資料
 
-#### 1. 此步驟是為了將"**流量**"與"**流量及輸砂量**"資料合併，使用[year2month.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/year2month.R)將"**流量及輸砂量**"的年份資料轉換成月份資料
+#### 1. 此步驟是為了將"**流量**"與"**輸砂量**"資料合併，使用[year2month.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/year2month.R)將"**輸砂量**"的年份資料轉換成月份資料
 * 讀檔路徑 F:/copula/JEN-SHOU BRIDGE/discharge+SSL/2019.csv
 * 寫檔路徑 F:/copula/JEN-SHOU BRIDGE/discharge+SSL/1month.csv
 #### 2. 結果如右：[以一月份為例](https://drive.google.com/file/d/1KhTT1wAUDuFJMY2xtMbVejzVgvXqZPdg/view?usp=sharing)
@@ -90,7 +90,7 @@ Master's thesis：[以聯結函數補遺日懸浮載輸砂量](https://thesis.li
 ---
 
 ## 二、合併流量及輸砂量資料
-#### 1. 使用[generateMDtable.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/generateMDtable.R)將"**流量**"與"**流量及輸砂量**"資料合併。
+#### 1. 使用[generateMDtable.R](https://github.com/nhpss921111/copula-for-hydrology/blob/master/generateMDtable.R)將"**流量**"與"**輸砂量**"資料合併。
 * 讀檔路徑(流量) F:/copula/JEN-SHOU BRIDGE/discharge/2019.csv 
 * 讀檔路徑(流量+輸砂量) F:/copula/JEN-SHOU BRIDGE/discharge+SSL/1month.csv
 * 寫檔路徑 F:/copula/JEN-SHOU BRIDGE/missingdata/2019QandQs.csv
