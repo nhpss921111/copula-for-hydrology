@@ -6,7 +6,7 @@ Master's thesis：[以聯結函數補遺日懸浮載輸砂量](https://thesis.li
 
 ## 研究資料來源：[水利署_水文年報_流量與輸砂量之觀測資料](https://gweb.wra.gov.tw/wrhygis/)
 
-## 將[雲端資料夾](https://drive.google.com/drive/folders/1E7LYiCCYMIydQPvx-LhyIn_Z4NvChiBM?usp=sharing)下載至本機電腦，記得存放路徑要與程式碼裡的路徑相同
+## 將[雲端資料夾](https://drive.google.com/drive/folders/1E7LYiCCYMIydQPvx-LhyIn_Z4NvChiBM?usp=sharing)下載至本機電腦，修改存放路徑並與程式碼裡的讀檔、寫檔路徑相同
 
 ## 觀察原始資料格式
 
