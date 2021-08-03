@@ -1,7 +1,7 @@
 # 邊際分布：parametric method
 # copula函數：IFM method
-# 開始撰寫日期：2020/02/16
-# 完成撰寫日期：2021/06/09
+# 開始撰寫日期：2020/02/16 
+# 完成撰寫日期：2021/08/02
 rm(list=ls()) # 清除環境變數
 library(copula)
 library(CoImp)
