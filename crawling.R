@@ -9,7 +9,7 @@ library(rvest)
 library(magrittr)
 library(jsonlite)
 library(dplyr)
-output <- "y" 
+output <- "y"
 # ========================================
 #station <- c("CHIA-YUANG")
 #station.num <- c("2560H017") #蘭陽溪-家源橋
